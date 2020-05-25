@@ -1,0 +1,26 @@
+{
+  "name": "tici-taca-toey-server",
+  "version": "0.0.1",
+  "description": "A multiplayer web sockets server for the game of tic tac toe",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/subramanian-elavathur/tici-taca-toey-server.git"
+  },
+  "keywords": [
+    "tic-tac-toe"
+  ],
+  "author": "subramanian-elavathur",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/subramanian-elavathur/tici-taca-toey-server/issues"
+  },
+  "homepage": "https://github.com/subramanian-elavathur/tici-taca-toey-server#readme",
+  "dependencies": {
+    "uuid": "^8.1.0",
+    "ws": "^7.3.0"
+  }
+}
