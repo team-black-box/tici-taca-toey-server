@@ -1,6 +1,6 @@
 const WebSocket = require("ws");
 
-const ws = new WebSocket("ws://localhost:8080");
+const ws = new WebSocket("ws://localhost:8080/app");
 
 const clientData = {
   player: {
@@ -20,15 +20,6 @@ ws.on("open", function open() {
   readline.question(`What's your player handle?\n`, (name) => {
     send({ type: "REGISTER_PLAYER", name });
   });
-
-  // ws.send(
-  //   JSON.stringify({
-  //     type: "START_GAME",
-  //     name: "Challenge #1",
-  //     boardSize: 3,
-  //     playerCount: 2,
-  //   })
-  // );
 });
 
 ws.on("message", function incoming(d) {
@@ -89,15 +80,25 @@ ws.on("message", function incoming(d) {
     case "START_GAME": {
       clientData.game = { ...data };
       log(
-        `Game started with id ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}`
+        `Game started with id ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
       );
+      console.table(clientData.game.positions);
       break;
     }
     case "JOIN_GAME": {
       clientData.game = { ...data };
       log(
-        `Game joined with id ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}`
+        `Game joined with id ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
       );
+      console.table(clientData.game.positions);
+      break;
+    }
+    case "GAME_STARTED": {
+      clientData.game = { ...data };
+      log(
+        `Game Started ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
+      );
+      console.table(clientData.game.positions);
       break;
     }
   }
@@ -108,7 +109,7 @@ const log = (message) => {
   console.clear();
   console.log(`
 /$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
-|__  $$__/|_  $$_/ /$$__  $$|_  $$_/   |__  $$__//$$__  $$ /$$__  $$ /$$__  $$     |__  $$__//$$__  $$| $$_____/|  $$   /$$/
+|__ $$__/|_  $$_/ /$$__  $$|_  $$_/   |__  $$__//$$__  $$ /$$__  $$ /$$__  $$     |__  $$__//$$__  $$| $$_____/|  $$   /$$/
   | $$     | $$  | $$  \__/  | $$        | $$  | $$  \ $$| $$  \__/| $$  \ $$        | $$  | $$  \ $$| $$       \  $$ /$$/ 
   | $$     | $$  | $$        | $$ /$$$$$$| $$  | $$$$$$$$| $$      | $$$$$$$$ /$$$$$$| $$  | $$  | $$| $$$$$     \  $$$$/  
   | $$     | $$  | $$        | $$|______/| $$  | $$__  $$| $$      | $$__  $$|______/| $$  | $$  | $$| $$__/      \  $$/   

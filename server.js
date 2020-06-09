@@ -1,4 +1,6 @@
 const WebSocket = require("ws");
+const http = require("http");
+const url = require("url");
 const uuid = require("uuid").v4;
 
 console.log(
@@ -21,7 +23,23 @@ let store = {
   player: {},
 };
 
-const wss = new WebSocket.Server({ port: 8080 });
+const server = http.createServer();
+
+const wss = new WebSocket.Server({ noServer: true });
+
+server.on("upgrade", function upgrade(request, socket, head) {
+  const pathname = url.parse(request.url).pathname;
+
+  if (pathname === "/app") {
+    wss.handleUpgrade(request, socket, head, function done(ws) {
+      wss.emit("connection", ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
+
+server.listen(8080);
 
 wss.on("connection", function connection(ws) {
   const playerId = uuid();
@@ -49,7 +67,7 @@ wss.on("connection", function connection(ws) {
           ...store,
           player: {
             ...store.player,
-            [playerId]: { connection: ws, name: message.name },
+            [playerId]: { connection: ws, name: message.name, playerId },
           },
         };
         send({ type: message.type, playerId, name: message.name });
@@ -137,15 +155,14 @@ wss.on("connection", function connection(ws) {
           `Joined game - total active games: ${Object.keys(store.game).length}`
         );
 
-        if (gameReadyToStart) {
-          store.game[message.gameId].players.forEach((playerId) => {
-            store.player[playerId].connection.send(
-              JSON.stringify({ type: message.type, ...game })
-            );
-          });
-        } else {
-          send({ type: message.type, ...game });
-        }
+        store.game[message.gameId].players.forEach((playerId) => {
+          store.player[playerId].connection.send(
+            JSON.stringify({
+              type: gameReadyToStart ? "GAME_STARTED" : message.type,
+              ...game,
+            })
+          );
+        });
         break;
       }
 
@@ -172,7 +189,7 @@ wss.on("connection", function connection(ws) {
             ...store.game,
             [gameId]: {
               ...store.game[gameId],
-              positions,
+              positions, // turn calculator
             },
           },
         };
@@ -211,7 +228,11 @@ const generateBoard = (boardSize) => {
   // possibly unnecessary
   const arr = [];
   for (let i = 0; i < boardSize; i++) {
-    arr.push([]);
+    const innerArr = [];
+    for (let j = 0; j < boardSize; j++) {
+      innerArr.push("-");
+    }
+    arr.push(innerArr);
   }
   return arr;
 };
