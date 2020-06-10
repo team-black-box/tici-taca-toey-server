@@ -248,6 +248,7 @@ const notifyAllUsersInGame = (gameId, message) => {
 };
 
 const calculateWinner = (gameId) => {
+  // todo determine tie
   const game = store.game[gameId];
 
   // check all rows
