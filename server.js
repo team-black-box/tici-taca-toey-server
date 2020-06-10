@@ -46,11 +46,11 @@ wss.on("connection", function connection(ws) {
   const log = loggerGenerator(playerId);
   const send = wsSendProxy(ws);
 
-  log(
-    `Received connection request - client must register within 5 seconds or the connection will be terminated`
-  );
+  // log(
+  //   `Received connection request - client must register within 5 seconds or the connection will be terminated`
+  // );
 
-  const timeout = setTimeout(terminateConnectionProxy(playerId, ws), 5000);
+  // const timeout = setTimeout(terminateConnectionProxy(playerId, ws), 5000);
 
   ws.on("message", function incoming(msg) {
     log(`Received message, parsing now`);
@@ -72,7 +72,7 @@ wss.on("connection", function connection(ws) {
         };
         send({ type: message.type, playerId, name: message.name });
         log(`User registered!`);
-        clearTimeout(timeout);
+        // clearTimeout(timeout);
         log(`Termination timeout cleared`);
         break;
       }
