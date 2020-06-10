@@ -23,12 +23,11 @@ ws.on("open", function open() {
 });
 
 ws.on("message", function incoming(d) {
-  log(d);
   const data = JSON.parse(d);
   switch (data.type) {
     case "REGISTER_PLAYER": {
       log(`Welcome ${data.name}`);
-      clientData.player.id = data.id;
+      clientData.player.id = data.playerId;
       clientData.player.name = data.name;
       readline.question(
         `1. Start a new game\n2. Join an existing game\n3. Exit\n`,
@@ -99,6 +98,51 @@ ws.on("message", function incoming(d) {
         `Game Started ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
       );
       console.table(clientData.game.positions);
+      if (clientData.game.turn === clientData.player.id) {
+        readline.question(
+          `Its your turn make a move - specify the X & Y coordinates. Example 01\n`,
+          (coordinates) => {
+            send({
+              type: "MAKE_MOVE",
+              gameId: clientData.game.gameId,
+              coordinateX: coordinates[0],
+              coordinateY: coordinates[1],
+            });
+          }
+        );
+      }
+      break;
+    }
+    case "MAKE_MOVE": {
+      clientData.game = { ...data };
+      log(
+        `Move made ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
+      );
+      console.table(clientData.game.positions);
+      if (clientData.game.turn === clientData.player.id) {
+        readline.question(
+          `Its your turn make a move - specify the X & Y coordinates. Example 01\n`,
+          (coordinates) => {
+            send({
+              type: "MAKE_MOVE",
+              gameId: clientData.game.gameId,
+              coordinateX: coordinates[0],
+              coordinateY: coordinates[1],
+            });
+          }
+        );
+      }
+      break;
+    }
+    case "GAME_COMPLETE": {
+      const winner = { ...data };
+      log(
+        `Game complete ${clientData.game.gameId}\nWinner: ${winner.playerId}`
+      );
+      console.table(clientData.game.positions);
+      clientData.game = {};
+      ws.terminate();
+      readline.close();
       break;
     }
   }

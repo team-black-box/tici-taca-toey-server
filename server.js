@@ -155,13 +155,9 @@ wss.on("connection", function connection(ws) {
           `Joined game - total active games: ${Object.keys(store.game).length}`
         );
 
-        store.game[message.gameId].players.forEach((playerId) => {
-          store.player[playerId].connection.send(
-            JSON.stringify({
-              type: gameReadyToStart ? "GAME_STARTED" : message.type,
-              ...game,
-            })
-          );
+        notifyAllUsersInGame(message.gameId, {
+          type: gameReadyToStart ? "GAME_STARTED" : message.type,
+          ...game,
         });
         break;
       }
@@ -177,11 +173,13 @@ wss.on("connection", function connection(ws) {
           send({ error: "MOVE_OUT_OF_TURN", gameId });
         }
         if (
-          store.game[gameId].positions[message.coordinateX][message.coordinateY]
+          store.game[gameId].positions[message.coordinateX][
+            message.coordinateY
+          ] != "-"
         ) {
           send({ error: "INVALID_MOVE", gameId });
         }
-        const positions = [...store.game[gameId]];
+        const positions = [...store.game[gameId].positions];
         positions[message.coordinateX][message.coordinateY] = playerId;
         store = {
           ...store,
@@ -189,14 +187,35 @@ wss.on("connection", function connection(ws) {
             ...store.game,
             [gameId]: {
               ...store.game[gameId],
-              positions, // turn calculator
+              positions,
+              turn: calculateNextTurn(gameId),
             },
           },
         };
+
         log(
           `Coordinate (${message.coordinateX},${message.coordinateY}) made successfully`
         );
-        send({ type: message.type, ...store.game[gameId] });
+
+        notifyAllUsersInGame(gameId, {
+          type: message.type,
+          ...store.game[gameId],
+        });
+
+        const winner = calculateWinner(gameId);
+
+        if (winner) {
+          log(`Game ends winning player: ${JSON.stringify(winner)}`);
+          const { [gameId]: currentGame, ...remainingGames } = store.game;
+          notifyAllUsersInGame(gameId, {
+            type: "GAME_COMPLETE",
+            ...winner,
+          });
+          store = {
+            ...store,
+            game: remainingGames,
+          };
+        }
         break;
       }
 
@@ -214,6 +233,87 @@ wss.on("connection", function connection(ws) {
     terminateConnectionProxy(playerId, ws)();
   });
 });
+
+const calculateNextTurn = (gameId) => {
+  const game = store.game[gameId];
+  const nextPlayerIndex =
+    (game.players.indexOf(game.turn) + 1) % game.playerCount;
+  return game.players[nextPlayerIndex];
+};
+
+const notifyAllUsersInGame = (gameId, message) => {
+  store.game[gameId].players.forEach((playerId) => {
+    store.player[playerId].connection.send(JSON.stringify(message));
+  });
+};
+
+const calculateWinner = (gameId) => {
+  const game = store.game[gameId];
+
+  // check all rows
+
+  for (let i = 0; i < game.boardSize; i++) {
+    const row = game.positions[i];
+    if (row.includes("-")) {
+      continue;
+    }
+    const uniqueValuesInRow = [...new Set(row)];
+    if (uniqueValuesInRow.length === 1) {
+      return {
+        playerId: uniqueValuesInRow[0], // winning player
+        sequence: `row-${i}`,
+      };
+    }
+  }
+
+  // check all cols
+
+  for (let i = 0; i < game.boardSize; i++) {
+    const column = [];
+    for (let j = 0; j < game.boardSize; j++) {
+      column.push(game.positions[j][i]);
+    }
+    if (column.includes("-")) {
+      continue;
+    }
+    const uniqueValuesInRow = [...new Set(column)];
+    if (uniqueValuesInRow.length === 1) {
+      return {
+        playerId: uniqueValuesInRow[0], // winning player
+        sequence: `column-${i}`,
+      };
+    }
+  }
+
+  // check diagonals
+
+  const diagonalLTR = [];
+  const diagonalRTL = [];
+  for (let i = 0; i < game.boardSize; i++) {
+    diagonalLTR.push(game.positions[i][i]);
+    diagonalRTL.push(game.positions[i][game.boardSize - i]);
+  }
+  if (!diagonalLTR.includes("-")) {
+    const uniqueDiagonalLTR = [...new Set(diagonalLTR)];
+    if (uniqueDiagonalLTR.length === 1) {
+      return {
+        playerId: uniqueDiagonalLTR[0], // winning player
+        sequence: `Diagonal LTR`,
+      };
+    }
+  }
+  if (!diagonalRTL.includes("-")) {
+    const uniqueDiagonalRTL = [...new Set(diagonalRTL)];
+    if (uniqueDiagonalRTL.length === 1) {
+      return {
+        playerId: uniqueDiagonalRTL[0], // winning player
+        sequence: `Diagonal RTL`,
+      };
+    }
+  }
+
+  return null;
+};
 
 const terminateConnectionProxy = (playerId, ws) => () => {
   const log = loggerGenerator(playerId);

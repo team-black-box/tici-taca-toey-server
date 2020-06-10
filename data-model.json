@@ -1,6 +1,7 @@
 {
   "game": {
     "game-id-1": {
+      "gameId": "",
       "name": "dummy",
       "boardSize": 3,
       "positions": [[], [], []],
@@ -13,7 +14,8 @@
   "player": {
     "player-id-1": {
       "name": "",
-      "connection": "ws-object"
+      "connection": "ws-object",
+      "playerId": "player-id-1"
     }
   }
 }
