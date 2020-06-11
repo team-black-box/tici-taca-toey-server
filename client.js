@@ -1,6 +1,6 @@
 const WebSocket = require("ws");
 
-const ws = new WebSocket("ws://localhost:8080/app");
+const ws = new WebSocket("ws://localhost:80/app");
 
 const clientData = {
   player: {
