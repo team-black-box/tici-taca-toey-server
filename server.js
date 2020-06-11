@@ -39,7 +39,7 @@ server.on("upgrade", function upgrade(request, socket, head) {
   }
 });
 
-server.listen(80);
+server.listen(8080);
 
 wss.on("connection", function connection(ws) {
   const playerId = uuid();
