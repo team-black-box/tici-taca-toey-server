@@ -23,6 +23,8 @@ let store = {
   player: {},
 };
 
+// 1x1 game turn does not start |
+
 const server = http.createServer();
 
 const wss = new WebSocket.Server({ noServer: true });
@@ -30,7 +32,7 @@ const wss = new WebSocket.Server({ noServer: true });
 server.on("upgrade", function upgrade(request, socket, head) {
   const pathname = url.parse(request.url).pathname;
 
-  if (pathname === "/app") {
+  if (pathname === "/") {
     wss.handleUpgrade(request, socket, head, function done(ws) {
       wss.emit("connection", ws, request);
     });
@@ -167,7 +169,7 @@ wss.on("connection", function connection(ws) {
         const gameId = message.gameId;
         log(`Validating move for game: ${gameId}`);
         if (store.game[gameId].status !== "GAME_IN_PROGRESS") {
-          send({ error: "GAME_INACTIVE", gameId });
+          send({ error: "GAME_NOT_FOUND", gameId });
         }
         if (store.game[gameId].turn !== playerId) {
           send({ error: "MOVE_OUT_OF_TURN", gameId });
