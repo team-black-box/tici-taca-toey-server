@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import WebSocket = require("ws");
-import { MessageTypes, ErrorCodes } from "./model";
-import StateMachineV1 from "./StateMachineV1";
+import { MessageTypes, ErrorCodes, Message } from "./model";
+import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
 console.log(
   `
@@ -20,7 +20,7 @@ console.log(
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-let stateMachine = new StateMachineV1();
+const engine = new TiciTacaToeyGameEngine();
 
 wss.on("connection", (ws) => {
   const playerId = uuid();
@@ -28,7 +28,13 @@ wss.on("connection", (ws) => {
     // data can be an array buffer or string
     console.log(`Received message, parsing now`);
 
-    let message = {};
+    let message: Message = null;
+
+    // Sequence of events
+    // 0. Parse message
+    // 1. Validate if move is legal
+    // 2. Transition State
+    // 3. Notify Users
 
     try {
       message = JSON.parse(data);

@@ -33,17 +33,23 @@ interface PlayerStore {
   [key: string]: ConnectedPlayer;
 }
 
-interface StateMachine {
+interface GameEngine {
   games: GameStore;
   players: PlayerStore;
-  transition: (message: Message) => StateMachine;
+  play: (message: Message) => GameEngine;
+  validate: (message: Message) => Promise<Message>;
+  transition: (message: Message) => GameEngine;
+  notify: (message: Message) => GameEngine;
 }
 
-// Messages
+// Incoming Messages
 
 interface RegisterPlayerMessage {
   type: MessageTypes.REGISTER_PLAYER;
   name: string;
+  connection: WebSocket;
+  playerId?: string;
+  gameId?: string;
 }
 
 interface StartGameMessage {
@@ -51,18 +57,22 @@ interface StartGameMessage {
   name: string;
   boardSize: number;
   playerCount: number;
+  playerId?: string;
+  gameId?: string;
 }
 
 interface JoinGameMessage {
   type: MessageTypes.JOIN_GAME;
   gameId: string;
+  playerId?: string;
 }
 
 interface MakeMoveMessage {
   type: MessageTypes.MAKE_MOVE;
-  gameId: string;
   coordinateX: number;
   coordinateY: number;
+  gameId: string;
+  playerId?: string;
 }
 
 // Union types require usage of the "type" keyword over interface
@@ -94,6 +104,7 @@ enum ErrorCodes {
 enum GameStatus {
   WAITING_FOR_PLAYERS = "WAITING_FOR_PLAYERS",
   GAME_IN_PROGRESS = "GAME_IN_PROGRESS",
+  GAME_COMPLETE = "GAME_COMPLETE",
 }
 
 export {
@@ -101,7 +112,7 @@ export {
   Player,
   GameStore,
   PlayerStore,
-  StateMachine,
+  GameEngine,
   MessageTypes,
   ErrorCodes,
   GameStatus,
