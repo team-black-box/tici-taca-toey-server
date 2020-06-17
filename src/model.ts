@@ -1,3 +1,4 @@
+import WebSocket = require("ws");
 interface Game {
   gameId: string;
   name: string;
@@ -5,7 +6,9 @@ interface Game {
   positions: string[][];
   playerCount: number;
   players: string[];
-  status: string;
+  winner: string;
+  winningSequence: string;
+  status: GameStatus;
   turn: string;
 }
 
@@ -38,11 +41,12 @@ interface GameEngine {
   players: PlayerStore;
   play: (message: Message) => GameEngine;
   validate: (message: Message) => Promise<Message>;
-  transition: (message: Message) => GameEngine;
-  notify: (message: Message) => GameEngine;
+  transition: (message: Message) => void;
+  notify: (message: Message) => void;
+  notifyError: (error: GameError) => void;
 }
 
-// Incoming Messages
+// Incoming messages - optional properties enriched by server
 
 interface RegisterPlayerMessage {
   type: MessageTypes.REGISTER_PLAYER;
@@ -57,6 +61,7 @@ interface StartGameMessage {
   name: string;
   boardSize: number;
   playerCount: number;
+  connection?: WebSocket;
   playerId?: string;
   gameId?: string;
 }
@@ -64,6 +69,7 @@ interface StartGameMessage {
 interface JoinGameMessage {
   type: MessageTypes.JOIN_GAME;
   gameId: string;
+  connection?: WebSocket;
   playerId?: string;
 }
 
@@ -72,10 +78,9 @@ interface MakeMoveMessage {
   coordinateX: number;
   coordinateY: number;
   gameId: string;
+  connection?: WebSocket;
   playerId?: string;
 }
-
-// Union types require usage of the "type" keyword over interface
 
 type Message =
   | RegisterPlayerMessage
@@ -83,7 +88,25 @@ type Message =
   | JoinGameMessage
   | MakeMoveMessage;
 
-// adding string values to support incoming message deserialization from string
+// Responses
+
+interface RegisterPlayerResponse extends Player {
+  type: MessageTypes.REGISTER_PLAYER;
+}
+
+interface GameActionResponse extends GameState {
+  type:
+    | MessageTypes.START_GAME
+    | MessageTypes.JOIN_GAME
+    | MessageTypes.MAKE_MOVE;
+}
+
+type Response = RegisterPlayerResponse | GameActionResponse;
+
+interface GameError {
+  error: ErrorCodes;
+  message: Message;
+}
 
 enum MessageTypes {
   REGISTER_PLAYER = "REGISTER_PLAYER",
@@ -95,16 +118,19 @@ enum MessageTypes {
 enum ErrorCodes {
   GAME_NOT_FOUND = "GAME_NOT_FOUND",
   PLAYER_ALREADY_PART_OF_GAME = "PLAYER_ALREADY_PART_OF_GAME",
-  GAME_IN_PROGRESS = "GAME_IN_PROGRESS",
+  GAME_ALREADY_IN_PROGRESS = "GAME_ALREADY_IN_PROGRESS",
   MOVE_OUT_OF_TURN = "MOVE_OUT_OF_TURN",
   INVALID_MOVE = "INVALID_MOVE",
   BAD_REQUEST = "BAD_REQUEST",
+  BOARD_SIZE_LESS_THAN_2 = "BOARD_SIZE_LESS_THAN_2",
+  PLAYER_COUNT_LESS_THAN_2 = "PLAYER_COUNT_LESS_THAN_2",
 }
 
 enum GameStatus {
   WAITING_FOR_PLAYERS = "WAITING_FOR_PLAYERS",
   GAME_IN_PROGRESS = "GAME_IN_PROGRESS",
-  GAME_COMPLETE = "GAME_COMPLETE",
+  GAME_WON = "GAME_WON",
+  GAME_ENDS_IN_A_DRAW = "GAME_ENDS_IN_A_DRAW",
 }
 
 export {
@@ -113,10 +139,14 @@ export {
   GameStore,
   PlayerStore,
   GameEngine,
+  GameError,
   MessageTypes,
   ErrorCodes,
   GameStatus,
   ConnectedPlayer,
   GameState,
   Message,
+  RegisterPlayerResponse,
+  GameActionResponse,
+  Response,
 };

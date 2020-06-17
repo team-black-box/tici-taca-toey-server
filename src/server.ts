@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import WebSocket = require("ws");
-import { MessageTypes, ErrorCodes, Message } from "./model";
+import { ErrorCodes, Message } from "./model";
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
 console.log(
@@ -30,12 +30,6 @@ wss.on("connection", (ws) => {
 
     let message: Message = null;
 
-    // Sequence of events
-    // 0. Parse message
-    // 1. Validate if move is legal
-    // 2. Transition State
-    // 3. Notify Users
-
     try {
       message = JSON.parse(data);
     } catch (exception) {
@@ -47,5 +41,16 @@ wss.on("connection", (ws) => {
         })
       );
     }
+
+    console.log(`Parsed message: ${JSON.stringify(message)}`);
+
+    const enrichedMessage: Message = {
+      ...message,
+      playerId,
+      gameId: message.gameId ? message.gameId : uuid(), // nullish coalescing!!
+      connection: ws,
+    };
+
+    engine.play(enrichedMessage);
   });
 });

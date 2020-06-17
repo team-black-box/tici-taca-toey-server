@@ -1,4 +1,15 @@
-import { GameEngine, MessageTypes, GameStatus, Message } from "./model";
+import {
+  GameEngine,
+  MessageTypes,
+  GameStatus,
+  Message,
+  ErrorCodes,
+  ConnectedPlayer,
+  Game,
+  Response,
+} from "./model";
+
+const EMPTY_POSITION = "-";
 
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
@@ -9,20 +20,71 @@ class TiciTacaToeyGameEngine implements GameEngine {
     this.players = {};
   }
 
-  play(message) {
+  play(message: Message) {
     this.validate(message)
-      .then((message) => this.transition(message))
-      .catch((error) => {});
+      .then((message) => {
+        this.transition(message);
+        this.notify(message);
+      })
+      .catch(this.notifyError);
     return this;
   }
 
-  validate(message) {
+  // todo: unify the multiple switch cases below
+  validate(message: Message) {
     return new Promise<Message>((resolve, reject) => {
+      switch (message.type) {
+        case MessageTypes.REGISTER_PLAYER:
+          break;
+        case MessageTypes.START_GAME: {
+          if (message.boardSize < 2) {
+            reject({ error: ErrorCodes.BOARD_SIZE_LESS_THAN_2, message });
+          }
+          if (message.playerCount < 2) {
+            reject({ error: ErrorCodes.PLAYER_COUNT_LESS_THAN_2, message });
+          }
+          break;
+        }
+        case MessageTypes.JOIN_GAME: {
+          if (!this.games[message.gameId]) {
+            reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
+          }
+          if (this.games[message.gameId].players.includes(message.playerId)) {
+            reject({ error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME, message });
+          }
+          if (
+            this.games[message.gameId].status !== GameStatus.WAITING_FOR_PLAYERS
+          ) {
+            reject({ error: ErrorCodes.GAME_ALREADY_IN_PROGRESS, message });
+          }
+          break;
+        }
+        case MessageTypes.MAKE_MOVE: {
+          if (
+            this.games[message.gameId].status !== GameStatus.GAME_IN_PROGRESS
+          ) {
+            reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
+          }
+          if (this.games[message.gameId].turn !== message.playerId) {
+            reject({ error: ErrorCodes.MOVE_OUT_OF_TURN, message });
+          }
+          if (
+            this.games[message.gameId].positions[message.coordinateX][
+              message.coordinateY
+            ] !== EMPTY_POSITION
+          ) {
+            reject({ error: ErrorCodes.INVALID_MOVE, message });
+          }
+          break;
+        }
+        default:
+          reject({ error: ErrorCodes.BAD_REQUEST, message });
+      }
       resolve(message);
     });
   }
 
-  transition(message) {
+  transition(message: Message) {
     switch (message.type) {
       case MessageTypes.REGISTER_PLAYER: {
         const { type, ...playerData } = message;
@@ -46,6 +108,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ...this.games,
           [message.gameId]: game,
         };
+        break;
       }
       case MessageTypes.JOIN_GAME: {
         const gameId = message.gameId;
@@ -65,6 +128,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ...this.games,
           [message.gameId]: game,
         };
+        break;
       }
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
@@ -78,14 +142,78 @@ class TiciTacaToeyGameEngine implements GameEngine {
             turn: calculateNextTurn(game.players, game.turn, game.playerCount),
           },
         };
+
+        const winner = calculateWinner(this.games[message.gameId]);
+        const tie = checkForDraw(this.games[message.gameId]);
+
+        if (winner) {
+          this.games = {
+            ...this.games,
+            [message.gameId]: {
+              ...this.games[message.gameId],
+              type: GameStatus.GAME_WON,
+              winner: winner.playerId,
+              winningSequence: winner.sequence,
+            },
+          };
+        } else if (tie) {
+          this.games = {
+            ...this.games,
+            [message.gameId]: {
+              ...this.games[message.gameId],
+              type: GameStatus.GAME_ENDS_IN_A_DRAW,
+            },
+          };
+        }
+
+        break;
       }
     }
-    return this;
   }
 
-  notify(message) {
-    // check for winner and self play winning move
-    return this;
+  // functions with side effects - websocket send operation
+
+  notify(message: Message) {
+    switch (message.type) {
+      case MessageTypes.REGISTER_PLAYER:
+        const response: Response = {
+          type: message.type,
+          name: message.name,
+          playerId: message.playerId,
+        };
+        message.connection.send(JSON.stringify(response));
+        break;
+      case MessageTypes.START_GAME:
+      case MessageTypes.JOIN_GAME:
+      case MessageTypes.MAKE_MOVE: {
+        const game = this.games[message.gameId];
+        const connectedPlayers: ConnectedPlayer[] = Object.keys(this.players)
+          .filter((each) => game.players.includes(each))
+          .map((each) => this.players[each]);
+        const response: Response = {
+          type: message.type,
+          game,
+          players: connectedPlayers
+            .map((each) => ({ name: each.name, playerId: each.playerId }))
+            .reduce((acc, each) => {
+              acc[each.playerId] = each;
+              return acc;
+            }, {}),
+        };
+        connectedPlayers.forEach((player) => {
+          player.connection.send(JSON.stringify(response));
+        });
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  notifyError(error) {
+    console.log(`Validation error received: ${JSON.stringify(error)}`);
+    const player: ConnectedPlayer = this.players[error.message.playerId];
+    player.connection.send(JSON.stringify(error));
   }
 }
 
@@ -98,17 +226,91 @@ const calculateNextTurn = (
   return players[nextPlayerIndex];
 };
 
-const generateBoard = (boardSize) => {
-  // possibly unnecessary
+const generateBoard = (boardSize: number): string[][] => {
+  // todo: refactor
   const arr = [];
   for (let i = 0; i < boardSize; i++) {
     const innerArr = [];
     for (let j = 0; j < boardSize; j++) {
-      innerArr.push("-");
+      innerArr.push(EMPTY_POSITION);
     }
     arr.push(innerArr);
   }
   return arr;
+};
+
+const checkForDraw = (game: Game): boolean => {
+  for (let i = 0; i < game.boardSize; i++) {
+    for (let j = 0; j < game.boardSize; j++) {
+      if (game.positions[i][j] === "-") {
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
+// todo: refactor
+const calculateWinner = (
+  game: Game
+): { playerId: string; sequence: string } => {
+  // check all rows
+  for (let i = 0; i < game.boardSize; i++) {
+    const row: string[] = game.positions[i];
+    if (row.includes("-")) {
+      continue;
+    }
+    const uniqueValuesInRow = [...new Set(row)];
+    if (uniqueValuesInRow.length === 1) {
+      return {
+        playerId: uniqueValuesInRow[0], // winning player
+        sequence: `row-${i}`,
+      };
+    }
+  }
+  // check all cols
+  for (let i = 0; i < game.boardSize; i++) {
+    const column = [];
+    for (let j = 0; j < game.boardSize; j++) {
+      column.push(game.positions[j][i]);
+    }
+    if (column.includes("-")) {
+      continue;
+    }
+    const uniqueValuesInRow = [...new Set(column)];
+    if (uniqueValuesInRow.length === 1) {
+      return {
+        playerId: uniqueValuesInRow[0], // winning player
+        sequence: `column-${i}`,
+      };
+    }
+  }
+  // check diagonals
+  const diagonalLTR = [];
+  const diagonalRTL = [];
+  for (let i = 0; i < game.boardSize; i++) {
+    diagonalLTR.push(game.positions[i][i]);
+    diagonalRTL.push(game.positions[i][game.boardSize - i]);
+  }
+  if (!diagonalLTR.includes("-")) {
+    const uniqueDiagonalLTR = [...new Set(diagonalLTR)];
+    if (uniqueDiagonalLTR.length === 1) {
+      return {
+        playerId: uniqueDiagonalLTR[0], // winning player
+        sequence: `Diagonal LTR`,
+      };
+    }
+  }
+  if (!diagonalRTL.includes("-")) {
+    const uniqueDiagonalRTL = [...new Set(diagonalRTL)];
+    if (uniqueDiagonalRTL.length === 1) {
+      return {
+        playerId: uniqueDiagonalRTL[0], // winning player
+        sequence: `Diagonal RTL`,
+      };
+    }
+  }
+  return null;
 };
 
 export default TiciTacaToeyGameEngine;

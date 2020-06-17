@@ -77,7 +77,8 @@ ws.on("message", function incoming(d) {
       break;
     }
     case "START_GAME": {
-      clientData.game = { ...data };
+      clientData.game = { ...data.game };
+      clientData.players = { ...data.players };
       log(
         `Game started with id ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
       );
@@ -85,17 +86,10 @@ ws.on("message", function incoming(d) {
       break;
     }
     case "JOIN_GAME": {
-      clientData.game = { ...data };
+      clientData.game = { ...data.game };
+      clientData.players = { ...data.players };
       log(
         `Game joined with id ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
-      );
-      console.table(clientData.game.positions);
-      break;
-    }
-    case "GAME_STARTED": {
-      clientData.game = { ...data };
-      log(
-        `Game Started ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
       );
       console.table(clientData.game.positions);
       if (clientData.game.turn === clientData.player.id) {
@@ -114,7 +108,8 @@ ws.on("message", function incoming(d) {
       break;
     }
     case "MAKE_MOVE": {
-      clientData.game = { ...data };
+      clientData.game = { ...data.game };
+      clientData.players = { ...data.players };
       log(
         `Move made ${clientData.game.gameId}\nCurrent status: ${clientData.game.status}\nActive Players: ${clientData.game.players.length}`
       );
@@ -132,17 +127,6 @@ ws.on("message", function incoming(d) {
           }
         );
       }
-      break;
-    }
-    case "GAME_COMPLETE": {
-      const winner = { ...data };
-      log(
-        `Game complete ${clientData.game.gameId}\nWinner: ${winner.playerId}`
-      );
-      console.table(clientData.game.positions);
-      clientData.game = {};
-      ws.terminate();
-      readline.close();
       break;
     }
   }
