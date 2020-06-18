@@ -1,10 +1,12 @@
 import { v4 as uuid } from "uuid";
 import WebSocket = require("ws");
-import { ErrorCodes, Message } from "./model";
+import { ErrorCodes, Message, GameEngine, GameStatus } from "./model";
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
-console.log(
-  `
+const log = (engine: GameEngine) => {
+  console.clear();
+  console.log(
+    `
   /$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
   |__  $$__/|_  $$_/ /$$__  $$|_  $$_/   |__  $$__//$$__  $$ /$$__  $$ /$$__  $$     |__  $$__//$$__  $$| $$_____/|  $$   /$$/
      | $$     | $$  | $$  \__/  | $$        | $$  | $$  \ $$| $$  \__/| $$  \ $$        | $$  | $$  \ $$| $$       \  $$ /$$/ 
@@ -14,26 +16,32 @@ console.log(
      | $$    /$$$$$$|  $$$$$$/ /$$$$$$      | $$  | $$  | $$|  $$$$$$/| $$  | $$        | $$  |  $$$$$$/| $$$$$$$$    | $$    
      |__/   |______/ \______/ |______/      |__/  |__/  |__/ \______/ |__/  |__/        |__/   \______/ |________/    |__/    
      
-    Server ready to accept incoming connections
+    Active Players Count: ${Object.values(engine.players).length}
+    Active Players: ${Object.values(engine.players)
+      .map((each) => each.name)
+      .join(", ")}
+    Active Games Count: ${Object.values(engine.games).length}
+    Active Games: ${Object.values(engine.games)
+      .filter((each) => each.status === GameStatus.GAME_IN_PROGRESS)
+      .map((each) => each.name)
+      .join(", ")}
   `
-);
+  );
+};
 
 const wss = new WebSocket.Server({ port: 8080 });
 
 const engine = new TiciTacaToeyGameEngine();
 
+log(engine);
+
 wss.on("connection", (ws) => {
   const playerId = uuid();
   ws.on("message", (data: string) => {
-    // data can be an array buffer or string
-    console.log(`Received message, parsing now`);
-
     let message: Message = null;
-
     try {
       message = JSON.parse(data);
     } catch (exception) {
-      console.log(`Error parsing exception`);
       ws.send(
         JSON.stringify({
           error: ErrorCodes.BAD_REQUEST,
@@ -42,8 +50,6 @@ wss.on("connection", (ws) => {
       );
     }
 
-    console.log(`Parsed message: ${JSON.stringify(message)}`);
-
     const enrichedMessage: Message = {
       ...message,
       playerId,
@@ -51,6 +57,6 @@ wss.on("connection", (ws) => {
       connection: ws,
     };
 
-    engine.play(enrichedMessage);
+    engine.play(enrichedMessage).then(log);
   });
 });

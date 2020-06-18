@@ -6,6 +6,7 @@ interface Game {
   positions: string[][];
   playerCount: number;
   players: string[];
+  spectators: string[];
   winner: string;
   winningSequence: string;
   status: GameStatus;
@@ -30,6 +31,9 @@ interface GameState {
   players: {
     [key: string]: Player;
   };
+  spectators: {
+    [key: string]: Player;
+  };
 }
 
 interface PlayerStore {
@@ -39,7 +43,7 @@ interface PlayerStore {
 interface GameEngine {
   games: GameStore;
   players: PlayerStore;
-  play: (message: Message) => GameEngine;
+  play: (message: Message) => Promise<GameEngine>;
   validate: (message: Message) => Promise<Message>;
   transition: (message: Message) => void;
   notify: (message: Message) => void;
@@ -73,6 +77,13 @@ interface JoinGameMessage {
   playerId?: string;
 }
 
+interface SpectateGameMessage {
+  type: MessageTypes.SPECTATE_GAME;
+  gameId: string;
+  connection?: WebSocket;
+  playerId?: string;
+}
+
 interface MakeMoveMessage {
   type: MessageTypes.MAKE_MOVE;
   coordinateX: number;
@@ -86,6 +97,7 @@ type Message =
   | RegisterPlayerMessage
   | StartGameMessage
   | JoinGameMessage
+  | SpectateGameMessage
   | MakeMoveMessage;
 
 // Responses
@@ -98,7 +110,9 @@ interface GameActionResponse extends GameState {
   type:
     | MessageTypes.START_GAME
     | MessageTypes.JOIN_GAME
-    | MessageTypes.MAKE_MOVE;
+    | MessageTypes.MAKE_MOVE
+    | MessageTypes.SPECTATE_GAME
+    | MessageTypes.GAME_COMPLETE;
 }
 
 type Response = RegisterPlayerResponse | GameActionResponse;
@@ -113,6 +127,8 @@ enum MessageTypes {
   START_GAME = "START_GAME",
   JOIN_GAME = "JOIN_GAME",
   MAKE_MOVE = "MAKE_MOVE",
+  SPECTATE_GAME = "SPECTATE_GAME",
+  GAME_COMPLETE = "GAME_COMPLETE", // response only
 }
 
 enum ErrorCodes {

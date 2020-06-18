@@ -21,13 +21,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
   }
 
   play(message: Message) {
-    this.validate(message)
-      .then((message) => {
-        this.transition(message);
-        this.notify(message);
-      })
-      .catch(this.notifyError);
-    return this;
+    return new Promise<GameEngine>((resolve, reject) => {
+      this.validate(message)
+        .then((message) => {
+          this.transition(message);
+          this.notify(message);
+          resolve(this);
+        })
+        .catch(this.notifyError.bind(this));
+    });
   }
 
   // todo: unify the multiple switch cases below
@@ -45,8 +47,20 @@ class TiciTacaToeyGameEngine implements GameEngine {
           }
           break;
         }
+        case MessageTypes.SPECTATE_GAME: {
+          if (
+            !this.games[message.gameId] &&
+            this.games[message.gameId].status !== GameStatus.GAME_IN_PROGRESS
+          ) {
+            reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
+          }
+          break;
+        }
         case MessageTypes.JOIN_GAME: {
-          if (!this.games[message.gameId]) {
+          if (
+            !this.games[message.gameId] &&
+            this.games[message.gameId].status !== GameStatus.GAME_IN_PROGRESS
+          ) {
             reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
           }
           if (this.games[message.gameId].players.includes(message.playerId)) {
@@ -102,6 +116,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           positions: generateBoard(message.boardSize),
           playerCount: message.playerCount ? message.playerCount : 2,
           players: [message.playerId],
+          spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
         };
         this.games = {
@@ -130,6 +145,19 @@ class TiciTacaToeyGameEngine implements GameEngine {
         };
         break;
       }
+      case MessageTypes.SPECTATE_GAME: {
+        this.games = {
+          ...this.games,
+          [message.gameId]: {
+            ...this.games[message.gameId],
+            spectators: [
+              ...this.games[message.gameId].spectators,
+              message.playerId,
+            ],
+          },
+        };
+        break;
+      }
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
         const positions = [...this.games[game.gameId].positions];
@@ -151,7 +179,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ...this.games,
             [message.gameId]: {
               ...this.games[message.gameId],
-              type: GameStatus.GAME_WON,
+              status: GameStatus.GAME_WON,
               winner: winner.playerId,
               winningSequence: winner.sequence,
             },
@@ -161,7 +189,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ...this.games,
             [message.gameId]: {
               ...this.games[message.gameId],
-              type: GameStatus.GAME_ENDS_IN_A_DRAW,
+              status: GameStatus.GAME_ENDS_IN_A_DRAW,
             },
           };
         }
@@ -190,8 +218,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
         const connectedPlayers: ConnectedPlayer[] = Object.keys(this.players)
           .filter((each) => game.players.includes(each))
           .map((each) => this.players[each]);
+        const connectedSpectators: ConnectedPlayer[] = Object.keys(this.players)
+          .filter((each) => game.spectators.includes(each))
+          .map((each) => this.players[each]);
         const response: Response = {
-          type: message.type,
+          type: [GameStatus.GAME_WON, GameStatus.GAME_ENDS_IN_A_DRAW].includes(
+            game.status
+          )
+            ? MessageTypes.GAME_COMPLETE
+            : message.type,
           game,
           players: connectedPlayers
             .map((each) => ({ name: each.name, playerId: each.playerId }))
@@ -199,8 +234,17 @@ class TiciTacaToeyGameEngine implements GameEngine {
               acc[each.playerId] = each;
               return acc;
             }, {}),
+          spectators: connectedSpectators
+            .map((each) => ({ name: each.name, playerId: each.playerId }))
+            .reduce((acc, each) => {
+              acc[each.playerId] = each;
+              return acc;
+            }, {}),
         };
         connectedPlayers.forEach((player) => {
+          player.connection.send(JSON.stringify(response));
+        });
+        connectedSpectators.forEach((player) => {
           player.connection.send(JSON.stringify(response));
         });
         break;
@@ -211,9 +255,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
   }
 
   notifyError(error) {
-    console.log(`Validation error received: ${JSON.stringify(error)}`);
     const player: ConnectedPlayer = this.players[error.message.playerId];
-    player.connection.send(JSON.stringify(error));
+    const { ["connection"]: omit, ...message } = error.message;
+    player.connection.send(JSON.stringify({ ...error, message }));
   }
 }
 
