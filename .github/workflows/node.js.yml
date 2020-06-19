@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-test:
-    name: Build and test Tici Taca Toey server
+    name: Build, Test & Upload Artifacts
     runs-on: ubuntu-latest
 
     strategy:
@@ -31,13 +31,16 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
-      - name: Print Runner Configuration
+      - name: Create artifact
         run: |
-          echo Present Working Directory
-          pwd
-          echo Current Directory Structure
-          ls -l
-          echo Root Directory Structure
-          ls -l /
-          echo testing if zip exists
-          zip
+          mkdir artifacts
+          cd dist/src
+          tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-servey-${{ github.ref }}.tar.gz *
+          cd ../..
+      - name: Check artifact contents
+        run: tar --list --verbose --file artifacts/tici-taca-toey-servey-${{ github.ref }}.tar.gz
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tici-taca-toey-servey-${{ github.ref }}
+          path: artifacts/tici-taca-toey-servey-${{ github.ref }}.tar.gz
