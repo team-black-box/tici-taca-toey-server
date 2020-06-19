@@ -46,8 +46,6 @@ jobs:
           cd dist/src
           tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-servey-${{needs.build-test.outputs.branch-name}}.tar.gz *
           cd ../..
-      - name: Check artifact contents
-        run:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
