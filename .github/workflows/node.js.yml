@@ -28,14 +28,8 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
-      - name: Create artifact
-        run: |
-          mkdir artifacts
-          cd dist/src
-          tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-server.tar.gz *
-          cd ../..
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: tici-taca-toey-server.tar.gz
-          path: artifacts/tici-taca-toey-server.tar.gz
+          name: tici-taca-toey-server
+          path: dist/src
