@@ -18,9 +18,6 @@ jobs:
       matrix:
         node-version: [12.x]
 
-    outputs:
-      branch-name: ${{ steps.extract-branch-name.outputs.branch }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -34,20 +31,14 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
-      - name: Extract branch name
-        id: extract-branch-name
-        run: |
-          BRANCH_REF=${{ github.ref }}
-          BRANCH_NAME=${BRANCH_REF#refs/heads/}
-          echo "::set-output name=branch::$BRANCH_NAME"
       - name: Create artifact
         run: |
           mkdir artifacts
           cd dist/src
-          tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-servey-${{needs.build-test.outputs.branch-name}}.tar.gz *
+          tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-server.tar.gz *
           cd ../..
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: tici-taca-toey-servey-${{needs.build-test.outputs.branch-name}}
-          path: artifacts/tici-taca-toey-servey-${{needs.build-test.outputs.branch-name}}.tar.gz
+          name: tici-taca-toey-server.tar.gz
+          path: artifacts/tici-taca-toey-server.tar.gz
