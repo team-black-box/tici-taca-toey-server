@@ -4,8 +4,9 @@
   "description": "A multiplayer web sockets server for the game of tic tac toe",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node dist/server"
+    "build": "tsc",
+    "test": "nyc ava",
+    "start": "npm run build && node dist/server"
   },
   "repository": {
     "type": "git",
@@ -27,5 +28,9 @@
     "typescript": "^3.9.5",
     "uuid": "^8.1.0",
     "ws": "^7.3.0"
+  },
+  "devDependencies": {
+    "ava": "^3.9.0",
+    "nyc": "^15.1.0"
   }
 }
