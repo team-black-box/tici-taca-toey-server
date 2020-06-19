@@ -43,9 +43,10 @@ interface PlayerStore {
 interface GameEngine {
   games: GameStore;
   players: PlayerStore;
-  play: (message: Message) => Promise<GameEngine>;
+  play: (message: Message, notify: boolean) => Promise<GameEngine>;
   validate: (message: Message) => Promise<Message>;
   transition: (message: Message) => void;
+  disconnectPlayer: (playerId: string) => void;
   notify: (message: Message) => void;
   notifyError: (error: GameError) => void;
 }

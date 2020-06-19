@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "test": "nyc ava",
-    "start": "npm run build && node dist/server"
+    "start": "npm run build && node dist/src/server.js"
   },
   "repository": {
     "type": "git",

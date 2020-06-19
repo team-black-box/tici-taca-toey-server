@@ -20,15 +20,21 @@ class TiciTacaToeyGameEngine implements GameEngine {
     this.players = {};
   }
 
-  play(message: Message) {
+  play(message: Message, notify: boolean = true) {
     return new Promise<GameEngine>((resolve, reject) => {
       this.validate(message)
         .then((message) => {
           this.transition(message);
-          this.notify(message);
+          if (notify) {
+            this.notify(message);
+          }
           resolve(this);
         })
-        .catch(this.notifyError.bind(this));
+        .catch((error) => {
+          if (notify) {
+            this.notifyError.bind(this)(error);
+          }
+        });
     });
   }
 
@@ -198,6 +204,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
       }
     }
   }
+
+  disconnectPlayer(playerId: string) {}
 
   // functions with side effects - websocket send operation
 

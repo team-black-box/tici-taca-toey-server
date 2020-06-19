@@ -59,4 +59,8 @@ wss.on("connection", (ws) => {
 
     engine.play(enrichedMessage).then(log);
   });
+
+  ws.on("close", function close() {
+    console.log("Player Disconnect - Update Game Engine State");
+  });
 });
