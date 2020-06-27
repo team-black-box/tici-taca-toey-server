@@ -1,6 +1,12 @@
 import { v4 as uuid } from "uuid";
 import WebSocket = require("ws");
-import { ErrorCodes, Message, GameEngine, GameStatus } from "./model";
+import {
+  ErrorCodes,
+  Message,
+  GameEngine,
+  GameStatus,
+  MessageTypes,
+} from "./model";
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
 const log = (engine: GameEngine) => {
@@ -37,6 +43,14 @@ log(engine);
 
 wss.on("connection", (ws) => {
   const playerId = uuid();
+  engine
+    .play({
+      type: MessageTypes.REGISTER_PLAYER,
+      playerId,
+      name: "",
+      connection: ws,
+    })
+    .then(log);
   ws.on("message", (data: string) => {
     let message: Message = null;
     try {

@@ -8,6 +8,7 @@ import {
   Game,
   Response,
 } from "./model";
+const uniq = require("lodash.uniq");
 
 const EMPTY_POSITION = "-";
 
@@ -51,22 +52,28 @@ class TiciTacaToeyGameEngine implements GameEngine {
           if (message.playerCount < 2) {
             reject({ error: ErrorCodes.PLAYER_COUNT_LESS_THAN_2, message });
           }
+          if (message.playerCount >= message.boardSize) {
+            reject({
+              error: ErrorCodes.PLAYER_COUNT_MUST_BE_LESS_THAN_BOARD_SIZE,
+              message,
+            });
+          }
           break;
         }
         case MessageTypes.SPECTATE_GAME: {
           if (
-            !this.games[message.gameId] &&
-            this.games[message.gameId].status !== GameStatus.GAME_IN_PROGRESS
+            !this.games[message.gameId] ||
+            ![
+              GameStatus.GAME_IN_PROGRESS,
+              GameStatus.WAITING_FOR_PLAYERS,
+            ].includes(this.games[message.gameId].status)
           ) {
             reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
           }
           break;
         }
         case MessageTypes.JOIN_GAME: {
-          if (
-            !this.games[message.gameId] &&
-            this.games[message.gameId].status !== GameStatus.GAME_IN_PROGRESS
-          ) {
+          if (!this.games[message.gameId]) {
             reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
           }
           if (this.games[message.gameId].players.includes(message.playerId)) {
@@ -118,9 +125,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
         const game = {
           gameId: message.gameId,
           name: message.name,
-          boardSize: message.boardSize,
+          boardSize: parseInt("" + message.boardSize),
           positions: generateBoard(message.boardSize),
-          playerCount: message.playerCount ? message.playerCount : 2,
+          playerCount: message.playerCount
+            ? parseInt("" + message.playerCount)
+            : 2,
           players: [message.playerId],
           spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
@@ -133,13 +142,18 @@ class TiciTacaToeyGameEngine implements GameEngine {
       }
       case MessageTypes.JOIN_GAME: {
         const gameId = message.gameId;
+
+        const updatedPlayersList = uniq([
+          ...this.games[gameId].players,
+          message.playerId,
+        ]);
+
         const gameReadyToStart =
-          this.games[gameId].players.length + 1 ===
-          this.games[gameId].playerCount;
+          updatedPlayersList.length === this.games[gameId].playerCount;
 
         const game = {
           ...this.games[gameId],
-          players: [...this.games[gameId].players, message.playerId],
+          players: [...updatedPlayersList],
           status: gameReadyToStart
             ? GameStatus.GAME_IN_PROGRESS
             : GameStatus.WAITING_FOR_PLAYERS,
@@ -221,6 +235,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       case MessageTypes.START_GAME:
       case MessageTypes.JOIN_GAME:
+      case MessageTypes.SPECTATE_GAME:
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
         const connectedPlayers: ConnectedPlayer[] = Object.keys(this.players)
@@ -253,7 +268,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
           player.connection.send(JSON.stringify(response));
         });
         connectedSpectators.forEach((player) => {
-          player.connection.send(JSON.stringify(response));
+          player.connection.send(
+            JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
+          );
         });
         break;
       }
@@ -265,7 +282,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
   notifyError(error) {
     const player: ConnectedPlayer = this.players[error.message.playerId];
     const { ["connection"]: omit, ...message } = error.message;
-    player.connection.send(JSON.stringify({ ...error, message }));
+    player.connection.send(
+      JSON.stringify({ ...error, message, type: "ERROR" })
+    );
   }
 }
 
@@ -308,14 +327,13 @@ const calculateWinner = (
 ): { playerId: string; sequence: string } => {
   // check all rows
   for (let i = 0; i < game.boardSize; i++) {
-    const row: string[] = game.positions[i];
+    const row: string[] = uniq(game.positions[i]);
     if (row.includes("-")) {
       continue;
     }
-    const uniqueValuesInRow = [...new Set(row)];
-    if (uniqueValuesInRow.length === 1) {
+    if (row.length === 1) {
       return {
-        playerId: uniqueValuesInRow[0], // winning player
+        playerId: row[0], // winning player
         sequence: `row-${i}`,
       };
     }
@@ -329,7 +347,7 @@ const calculateWinner = (
     if (column.includes("-")) {
       continue;
     }
-    const uniqueValuesInRow = [...new Set(column)];
+    const uniqueValuesInRow = uniq(column);
     if (uniqueValuesInRow.length === 1) {
       return {
         playerId: uniqueValuesInRow[0], // winning player
@@ -342,10 +360,10 @@ const calculateWinner = (
   const diagonalRTL = [];
   for (let i = 0; i < game.boardSize; i++) {
     diagonalLTR.push(game.positions[i][i]);
-    diagonalRTL.push(game.positions[i][game.boardSize - i]);
+    diagonalRTL.push(game.positions[i][game.boardSize - 1 - i]);
   }
   if (!diagonalLTR.includes("-")) {
-    const uniqueDiagonalLTR = [...new Set(diagonalLTR)];
+    const uniqueDiagonalLTR = uniq(diagonalLTR);
     if (uniqueDiagonalLTR.length === 1) {
       return {
         playerId: uniqueDiagonalLTR[0], // winning player
@@ -354,7 +372,7 @@ const calculateWinner = (
     }
   }
   if (!diagonalRTL.includes("-")) {
-    const uniqueDiagonalRTL = [...new Set(diagonalRTL)];
+    const uniqueDiagonalRTL = uniq(diagonalRTL);
     if (uniqueDiagonalRTL.length === 1) {
       return {
         playerId: uniqueDiagonalRTL[0], // winning player

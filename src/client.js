@@ -1,7 +1,7 @@
 const WebSocket = require("ws");
 const { read } = require("fs");
 
-const ws = new WebSocket("ws://localhost:8080");
+const ws = new WebSocket("ws://192.168.1.8:8080");
 
 const clientData = {
   player: {
