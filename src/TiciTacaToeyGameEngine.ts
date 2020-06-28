@@ -46,13 +46,16 @@ class TiciTacaToeyGameEngine implements GameEngine {
         case MessageTypes.REGISTER_PLAYER:
           break;
         case MessageTypes.START_GAME: {
-          if (message.boardSize < 2) {
+          if (parseInt("" + message.boardSize) < 2) {
             reject({ error: ErrorCodes.BOARD_SIZE_LESS_THAN_2, message });
           }
-          if (message.playerCount < 2) {
+          if (parseInt("" + message.playerCount) < 2) {
             reject({ error: ErrorCodes.PLAYER_COUNT_LESS_THAN_2, message });
           }
-          if (message.playerCount >= message.boardSize) {
+          if (
+            parseInt("" + message.playerCount) >=
+            parseInt("" + message.boardSize)
+          ) {
             reject({
               error: ErrorCodes.PLAYER_COUNT_MUST_BE_LESS_THAN_BOARD_SIZE,
               message,
