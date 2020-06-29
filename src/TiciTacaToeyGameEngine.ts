@@ -169,14 +169,16 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.SPECTATE_GAME: {
+        const updatedSpectatorsList = uniq([
+          ...this.games[message.gameId].spectators,
+          message.playerId,
+        ]);
+
         this.games = {
           ...this.games,
           [message.gameId]: {
             ...this.games[message.gameId],
-            spectators: [
-              ...this.games[message.gameId].spectators,
-              message.playerId,
-            ],
+            spectators: [...updatedSpectatorsList],
           },
         };
         break;
