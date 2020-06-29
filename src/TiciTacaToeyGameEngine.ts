@@ -204,6 +204,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
               ...this.games[message.gameId],
               status: GameStatus.GAME_WON,
               winner: winner.playerId,
+              turn: "",
               winningSequence: winner.sequence,
             },
           };
