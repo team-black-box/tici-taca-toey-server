@@ -28,17 +28,3 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
-      - name: Create artifact
-        run: |
-          mkdir artifacts	
-          cd dist/src	
-          tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-server.tar.gz *	
-          cd ../..
-      - name: Deploy artifact
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          source: "artifacts/tici-taca-toey-server.tar.gz"
-          target: "deploy"
