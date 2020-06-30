@@ -41,4 +41,4 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           source: "artifacts/tici-taca-toey-server.tar.gz"
-          target: "artifacts"
+          target: "deploy"
