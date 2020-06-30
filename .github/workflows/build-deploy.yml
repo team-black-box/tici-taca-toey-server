@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build and Deploy
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-test:
-    name: Build, Test & Upload Artifacts
+    name: Build & Deploy
     runs-on: ubuntu-latest
 
     strategy:
@@ -28,8 +28,17 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+      - name: Create artifact
+        run: |
+          mkdir artifacts	
+          cd dist/src	
+          tar --verbose --create --gzip --file ../../artifacts/tici-taca-toey-server.tar.gz *	
+          cd ../..
+      - name: Deploy artifact
+        uses: appleboy/scp-action@master
         with:
-          name: tici-taca-toey-server
-          path: dist/src/
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          source: "artifacts/tici-taca-toey-server.tar.gz"
+          target: "artifacts"
