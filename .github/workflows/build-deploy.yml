@@ -36,4 +36,5 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           script: |
             cd tici-taca-toey-server
-            bash deploy.sh
+            bash deploy.sh &
+            echo Deployed
