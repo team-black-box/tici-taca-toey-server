@@ -28,3 +28,12 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          script: |
+            cd tici-taca-toey-server
+            bash deploy.sh
