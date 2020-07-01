@@ -215,6 +215,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ...this.games,
             [message.gameId]: {
               ...this.games[message.gameId],
+              turn: "",
               status: GameStatus.GAME_ENDS_IN_A_DRAW,
             },
           };
