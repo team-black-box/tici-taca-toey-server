@@ -73,6 +73,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ) {
             reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
           }
+          if (this.games[message.gameId].players.includes(message.playerId)) {
+            reject({ error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME, message });
+          }
           break;
         }
         case MessageTypes.JOIN_GAME: {
