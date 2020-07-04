@@ -1,5 +1,7 @@
 import { v4 as uuid } from "uuid";
 import WebSocket = require("ws");
+import https = require("https");
+import fs = require("fs");
 import {
   ErrorCodes,
   Message,
@@ -10,7 +12,7 @@ import {
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
 const log = (engine: GameEngine) => {
-  console.clear();
+  // console.clear();
   console.log(
     `
   /$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
@@ -35,7 +37,20 @@ const log = (engine: GameEngine) => {
   );
 };
 
-const wss = new WebSocket.Server({ port: 8080 });
+const certificatePaths: string[] = process.argv.slice(2);
+
+let wss;
+
+if (certificatePaths.length !== 2) {
+  wss = new WebSocket.Server({ port: 8080 });
+} else {
+  const server = https.createServer({
+    cert: fs.readFileSync(certificatePaths[0]),
+    key: fs.readFileSync(certificatePaths[1]),
+  });
+  wss = new WebSocket.Server({ server });
+  server.listen(8080);
+}
 
 const engine = new TiciTacaToeyGameEngine();
 
