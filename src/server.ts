@@ -37,19 +37,19 @@ const log = (engine: GameEngine) => {
   );
 };
 
-const certificatePaths: string[] = process.argv.slice(2);
+const serverArgs: string[] = process.argv.slice(2);
 
 let wss;
 
-if (certificatePaths.length !== 2) {
+if (serverArgs.length !== 3) {
   wss = new WebSocket.Server({ port: 8080 });
 } else {
   const server = https.createServer({
-    cert: fs.readFileSync(certificatePaths[0]),
-    key: fs.readFileSync(certificatePaths[1]),
+    cert: fs.readFileSync(serverArgs[0]),
+    key: fs.readFileSync(serverArgs[1]),
   });
   wss = new WebSocket.Server({ server });
-  server.listen(8080);
+  server.listen(serverArgs[2]);
 }
 
 const engine = new TiciTacaToeyGameEngine();
