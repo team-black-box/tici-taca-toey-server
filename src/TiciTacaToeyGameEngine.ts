@@ -61,6 +61,18 @@ class TiciTacaToeyGameEngine implements GameEngine {
               message,
             });
           }
+          if (parseInt("" + message.boardSize) > 12) {
+            reject({
+              error: ErrorCodes.BOARD_SIZE_CANNOT_BE_GREATER_THAN_12,
+              message,
+            });
+          }
+          if (parseInt("" + message.playerCount) > 10) {
+            reject({
+              error: ErrorCodes.PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10,
+              message,
+            });
+          }
           break;
         }
         case MessageTypes.SPECTATE_GAME: {
@@ -75,6 +87,12 @@ class TiciTacaToeyGameEngine implements GameEngine {
           }
           if (this.games[message.gameId].players.includes(message.playerId)) {
             reject({ error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME, message });
+          }
+          if (this.games[message.gameId].spectators.length >= 15) {
+            reject({
+              error: ErrorCodes.SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10,
+              message,
+            });
           }
           break;
         }
