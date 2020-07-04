@@ -12,7 +12,7 @@ import {
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
 const log = (engine: GameEngine) => {
-  // console.clear();
+  console.clear();
   console.log(
     `
   /$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
