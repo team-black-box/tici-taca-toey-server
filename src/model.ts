@@ -94,12 +94,20 @@ interface MakeMoveMessage {
   playerId?: string;
 }
 
+interface PlayerDisconnectMessage {
+  type: MessageTypes.PLAYER_DISCONNECT;
+  playerId: string;
+  gameId?: string; // todo: this is really not required :(
+  connection?: WebSocket; // todo: this is really not required :(
+}
+
 type Message =
   | RegisterPlayerMessage
   | StartGameMessage
   | JoinGameMessage
   | SpectateGameMessage
-  | MakeMoveMessage;
+  | MakeMoveMessage
+  | PlayerDisconnectMessage;
 
 // Responses
 
@@ -113,6 +121,7 @@ interface GameActionResponse extends GameState {
     | MessageTypes.JOIN_GAME
     | MessageTypes.MAKE_MOVE
     | MessageTypes.SPECTATE_GAME
+    | MessageTypes.PLAYER_DISCONNECT
     | MessageTypes.GAME_COMPLETE;
 }
 
@@ -130,6 +139,7 @@ enum MessageTypes {
   MAKE_MOVE = "MAKE_MOVE",
   SPECTATE_GAME = "SPECTATE_GAME",
   GAME_COMPLETE = "GAME_COMPLETE", // response only
+  PLAYER_DISCONNECT = "PLAYER_DISCONNECT",
 }
 
 enum ErrorCodes {
@@ -152,6 +162,7 @@ enum GameStatus {
   GAME_IN_PROGRESS = "GAME_IN_PROGRESS",
   GAME_WON = "GAME_WON",
   GAME_ENDS_IN_A_DRAW = "GAME_ENDS_IN_A_DRAW",
+  GAME_ABANDONED = "GAME_ABANDONED",
 }
 
 export {
@@ -170,4 +181,5 @@ export {
   RegisterPlayerResponse,
   GameActionResponse,
   Response,
+  PlayerDisconnectMessage,
 };

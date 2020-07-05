@@ -7,6 +7,7 @@ import {
   ConnectedPlayer,
   Game,
   Response,
+  GameStore,
 } from "./model";
 const uniq = require("lodash.uniq");
 
@@ -32,6 +33,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           resolve(this);
         })
         .catch((error) => {
+          console.error(error);
           if (notify) {
             this.notifyError.bind(this)(error);
           }
@@ -44,6 +46,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
     return new Promise<Message>((resolve, reject) => {
       switch (message.type) {
         case MessageTypes.REGISTER_PLAYER:
+          break;
+        case MessageTypes.PLAYER_DISCONNECT:
           break;
         case MessageTypes.START_GAME: {
           if (parseInt("" + message.boardSize) < 2) {
@@ -143,6 +147,28 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ...this.players,
           [message.playerId]: { ...playerData },
         };
+        break;
+      }
+      case MessageTypes.PLAYER_DISCONNECT: {
+        // Remove player from players list
+        const { playerId } = message;
+        const { [playerId]: omit, ...rest } = this.players;
+        this.players = rest;
+        // Transition games to GAME_ABANDONED state
+        this.games = Object.values(this.games).reduce(
+          (acc: GameStore, each: Game): GameStore => {
+            if (each.players.includes(playerId)) {
+              acc[each.gameId] = {
+                ...each,
+                status: GameStatus.GAME_ABANDONED,
+              };
+            } else {
+              acc[each.gameId] = each;
+            }
+            return acc;
+          },
+          {}
+        );
         break;
       }
       case MessageTypes.START_GAME: {
@@ -260,6 +286,50 @@ class TiciTacaToeyGameEngine implements GameEngine {
           playerId: message.playerId,
         };
         message.connection.send(JSON.stringify(response));
+        break;
+      case MessageTypes.PLAYER_DISCONNECT:
+        Object.values(this.games)
+          .filter((each: Game) => each.players.includes(message.playerId))
+          .forEach((game: Game) => {
+            const connectedPlayers: ConnectedPlayer[] = Object.keys(
+              this.players
+            )
+              .filter((each) => game.players.includes(each))
+              .map((each) => this.players[each]);
+            const connectedSpectators: ConnectedPlayer[] = Object.keys(
+              this.players
+            )
+              .filter((each) => game.spectators.includes(each))
+              .map((each) => this.players[each]);
+            const response: Response = {
+              // todo: extract as generic method
+              type: message.type,
+              game,
+              players: connectedPlayers
+                .map((each) => ({ name: each.name, playerId: each.playerId }))
+                .reduce((acc, each) => {
+                  acc[each.playerId] = each;
+                  return acc;
+                }, {}),
+              spectators: connectedSpectators
+                .map((each) => ({ name: each.name, playerId: each.playerId }))
+                .reduce((acc, each) => {
+                  acc[each.playerId] = each;
+                  return acc;
+                }, {}),
+            };
+            connectedPlayers.forEach((player) => {
+              player.connection.send(JSON.stringify(response));
+            });
+            connectedSpectators.forEach((player) => {
+              player.connection.send(
+                JSON.stringify({
+                  ...response,
+                  type: MessageTypes.SPECTATE_GAME,
+                })
+              );
+            });
+          });
         break;
       case MessageTypes.START_GAME:
       case MessageTypes.JOIN_GAME:
