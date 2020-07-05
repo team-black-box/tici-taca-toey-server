@@ -8,33 +8,32 @@ import {
   GameEngine,
   GameStatus,
   MessageTypes,
+  PlayerDisconnectMessage,
 } from "./model";
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
+console.log(`
+/$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
+|__  $$__/|_  $$_/ /$$__  $$|_  $$_/   |__  $$__//$$__  $$ /$$__  $$ /$$__  $$     |__  $$__//$$__  $$| $$_____/|  $$   /$$/
+   | $$     | $$  | $$  \__/  | $$        | $$  | $$  \ $$| $$  \__/| $$  \ $$        | $$  | $$  \ $$| $$       \  $$ /$$/ 
+   | $$     | $$  | $$        | $$ /$$$$$$| $$  | $$$$$$$$| $$      | $$$$$$$$ /$$$$$$| $$  | $$  | $$| $$$$$     \  $$$$/  
+   | $$     | $$  | $$        | $$|______/| $$  | $$__  $$| $$      | $$__  $$|______/| $$  | $$  | $$| $$__/      \  $$/   
+   | $$     | $$  | $$    $$  | $$        | $$  | $$  | $$| $$    $$| $$  | $$        | $$  | $$  | $$| $$          | $$    
+   | $$    /$$$$$$|  $$$$$$/ /$$$$$$      | $$  | $$  | $$|  $$$$$$/| $$  | $$        | $$  |  $$$$$$/| $$$$$$$$    | $$    
+   |__/   |______/ \______/ |______/      |__/  |__/  |__/ \______/ |__/  |__/        |__/   \______/ |________/    |__/    
+`);
+
 const log = (engine: GameEngine) => {
-  console.clear();
-  console.log(
-    `
-  /$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
-  |__  $$__/|_  $$_/ /$$__  $$|_  $$_/   |__  $$__//$$__  $$ /$$__  $$ /$$__  $$     |__  $$__//$$__  $$| $$_____/|  $$   /$$/
-     | $$     | $$  | $$  \__/  | $$        | $$  | $$  \ $$| $$  \__/| $$  \ $$        | $$  | $$  \ $$| $$       \  $$ /$$/ 
-     | $$     | $$  | $$        | $$ /$$$$$$| $$  | $$$$$$$$| $$      | $$$$$$$$ /$$$$$$| $$  | $$  | $$| $$$$$     \  $$$$/  
-     | $$     | $$  | $$        | $$|______/| $$  | $$__  $$| $$      | $$__  $$|______/| $$  | $$  | $$| $$__/      \  $$/   
-     | $$     | $$  | $$    $$  | $$        | $$  | $$  | $$| $$    $$| $$  | $$        | $$  | $$  | $$| $$          | $$    
-     | $$    /$$$$$$|  $$$$$$/ /$$$$$$      | $$  | $$  | $$|  $$$$$$/| $$  | $$        | $$  |  $$$$$$/| $$$$$$$$    | $$    
-     |__/   |______/ \______/ |______/      |__/  |__/  |__/ \______/ |__/  |__/        |__/   \______/ |________/    |__/    
-     
-    Active Players Count: ${Object.values(engine.players).length}
-    Active Players: ${Object.values(engine.players)
-      .map((each) => each.name)
-      .join(", ")}
-    Active Games Count: ${Object.values(engine.games).length}
-    Active Games: ${Object.values(engine.games)
-      .filter((each) => each.status === GameStatus.GAME_IN_PROGRESS)
-      .map((each) => each.name)
-      .join(", ")}
-  `
-  );
+  console.log(`Active Players Count: ${Object.values(engine.players).length}
+Active Players: ${Object.values(engine.players)
+    .map((each) => each.name)
+    .join(", ")}
+Active Games Count: ${Object.values(engine.games).length}
+Active Games: ${Object.values(engine.games)
+    .filter((each) => each.status === GameStatus.GAME_IN_PROGRESS)
+    .map((each) => each.name)
+    .join(", ")}
+======================================================================`);
 };
 
 const serverArgs: string[] = process.argv.slice(2);
@@ -90,6 +89,11 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", function close() {
-    console.log("Player Disconnect - Update Game Engine State");
+    ws.terminate();
+    const playerDisconnectMessage: PlayerDisconnectMessage = {
+      type: MessageTypes.PLAYER_DISCONNECT,
+      playerId,
+    };
+    engine.play(playerDisconnectMessage).then(log);
   });
 });
