@@ -34,7 +34,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
           resolve(this);
         })
         .catch((error) => {
-          console.error(error);
           if (notify) {
             this.notifyError.bind(this)(error);
           }

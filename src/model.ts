@@ -189,4 +189,5 @@ export {
   Response,
   PlayerDisconnectMessage,
   COMPLETED_GAME_STATUS,
+  StartGameMessage,
 };

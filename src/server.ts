@@ -5,36 +5,26 @@ import fs = require("fs");
 import {
   ErrorCodes,
   Message,
-  GameEngine,
-  GameStatus,
   MessageTypes,
   PlayerDisconnectMessage,
 } from "./model";
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
+const { createLogger, format, transports } = require("winston");
 
-console.log(`
-/$$$$$$$$ /$$$$$$  /$$$$$$  /$$$$$$    /$$$$$$$$ /$$$$$$   /$$$$$$   /$$$$$$       /$$$$$$$$ /$$$$$$  /$$$$$$$$ /$$     /$$
-|__  $$__/|_  $$_/ /$$__  $$|_  $$_/   |__  $$__//$$__  $$ /$$__  $$ /$$__  $$     |__  $$__//$$__  $$| $$_____/|  $$   /$$/
-   | $$     | $$  | $$  \__/  | $$        | $$  | $$  \ $$| $$  \__/| $$  \ $$        | $$  | $$  \ $$| $$       \  $$ /$$/ 
-   | $$     | $$  | $$        | $$ /$$$$$$| $$  | $$$$$$$$| $$      | $$$$$$$$ /$$$$$$| $$  | $$  | $$| $$$$$     \  $$$$/  
-   | $$     | $$  | $$        | $$|______/| $$  | $$__  $$| $$      | $$__  $$|______/| $$  | $$  | $$| $$__/      \  $$/   
-   | $$     | $$  | $$    $$  | $$        | $$  | $$  | $$| $$    $$| $$  | $$        | $$  | $$  | $$| $$          | $$    
-   | $$    /$$$$$$|  $$$$$$/ /$$$$$$      | $$  | $$  | $$|  $$$$$$/| $$  | $$        | $$  |  $$$$$$/| $$$$$$$$    | $$    
-   |__/   |______/ \______/ |______/      |__/  |__/  |__/ \______/ |__/  |__/        |__/   \______/ |________/    |__/    
-`);
+const logger = createLogger({
+  level: "info",
+  format: format.combine(
+    format.timestamp({
+      format: "YYYY-MM-DD HH:mm:ss",
+    }),
+    format.errors({ stack: true }),
+    format.splat(),
+    format.json()
+  ),
+  transports: [new transports.File({ filename: "log.txt" })],
+});
 
-const log = (engine: GameEngine) => {
-  console.log(`Active Players Count: ${Object.values(engine.players).length}
-Active Players: ${Object.values(engine.players)
-    .map((each) => each.name)
-    .join(", ")}
-Active Games Count: ${Object.values(engine.games).length}
-Active Games: ${Object.values(engine.games)
-    .filter((each) => each.status === GameStatus.GAME_IN_PROGRESS)
-    .map((each) => each.name)
-    .join(", ")}
-======================================================================`);
-};
+logger.info("Tici Taca Toey Server is in startup");
 
 const serverArgs: string[] = process.argv.slice(2);
 
@@ -53,23 +43,22 @@ if (serverArgs.length !== 3) {
 
 const engine = new TiciTacaToeyGameEngine();
 
-log(engine);
-
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   const playerId = uuid();
-  engine
-    .play({
-      type: MessageTypes.REGISTER_PLAYER,
-      playerId,
-      name: "",
-      connection: ws,
-    })
-    .then(log);
+  const playerLogger = logger.child({ playerId, ip: req.socket.remoteAddress });
+  playerLogger.info("Player Connected");
+  engine.play({
+    type: MessageTypes.REGISTER_PLAYER,
+    playerId,
+    name: "",
+    connection: ws,
+  });
   ws.on("message", (data: string) => {
     let message: Message = null;
     try {
       message = JSON.parse(data);
     } catch (exception) {
+      playerLogger.error(`Error Parsing Message: ${data}`, exception);
       ws.send(
         JSON.stringify({
           error: ErrorCodes.BAD_REQUEST,
@@ -78,6 +67,8 @@ wss.on("connection", (ws) => {
       );
     }
 
+    playerLogger.info("Message Received", message);
+
     const enrichedMessage: Message = {
       ...message,
       playerId,
@@ -85,7 +76,7 @@ wss.on("connection", (ws) => {
       connection: ws,
     };
 
-    engine.play(enrichedMessage).then(log);
+    engine.play(enrichedMessage);
   });
 
   ws.on("close", function close() {
@@ -94,6 +85,7 @@ wss.on("connection", (ws) => {
       type: MessageTypes.PLAYER_DISCONNECT,
       playerId,
     };
-    engine.play(playerDisconnectMessage).then(log);
+    playerLogger.info("Player Disconnected");
+    engine.play(playerDisconnectMessage);
   });
 });
