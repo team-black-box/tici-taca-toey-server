@@ -8,6 +8,7 @@ import {
   Game,
   Response,
   GameStore,
+  COMPLETED_GAME_STATUS,
 } from "./model";
 const uniq = require("lodash.uniq");
 
@@ -157,7 +158,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
         // Transition games to GAME_ABANDONED state
         this.games = Object.values(this.games).reduce(
           (acc: GameStore, each: Game): GameStore => {
-            if (each.players.includes(playerId)) {
+            if (
+              each.players.includes(playerId) &&
+              !COMPLETED_GAME_STATUS.includes(each.status)
+            ) {
               acc[each.gameId] = {
                 ...each,
                 status: GameStatus.GAME_ABANDONED,
