@@ -165,6 +165,12 @@ enum GameStatus {
   GAME_ABANDONED = "GAME_ABANDONED",
 }
 
+const COMPLETED_GAME_STATUS = [
+  GameStatus.GAME_ABANDONED,
+  GameStatus.GAME_ENDS_IN_A_DRAW,
+  GameStatus.GAME_WON,
+];
+
 export {
   Game,
   Player,
@@ -182,4 +188,5 @@ export {
   GameActionResponse,
   Response,
   PlayerDisconnectMessage,
+  COMPLETED_GAME_STATUS,
 };
