@@ -490,8 +490,6 @@ const calculateWinner = (
 export const calculateWinnerV2 = (
   input: CalculateWinnerInputType
 ): CalculateWinnerOutputType => {
-  // write your code below the following existing function
-  // https://github.com/subramanian-elavathur/tici-taca-toey-server/blob/master/src/TiciTacaToeyGameEngine.ts#L427
   return null;
 };
 
