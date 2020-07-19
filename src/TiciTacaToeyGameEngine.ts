@@ -490,6 +490,132 @@ const calculateWinner = (
 export const calculateWinnerV2 = (
   input: CalculateWinnerInputType
 ): CalculateWinnerOutputType => {
+  let start=0;
+  let end=0;
+  let count=0;
+  let winningSquence=[];
+  const size = input.positions.length;
+  const seqLength = input.winningSequenceLength;
+  const x = input.lastTurnPosition.x;
+  const y = input.lastTurnPosition.y;
+
+  //check horizontal
+  start = y-(seqLength-1)<0?0:y-(seqLength-1);
+  end = y+(seqLength-1)>size-1?size-1:y+(seqLength-1);
+  for(let i=start;i<=end;i++) {
+      if (!(input.lastTurnPlayerId === input.positions[x][i])) {
+          count = 0;
+          continue;
+      } else {
+          count++;
+          winningSquence.push({x:x,y:i});
+      }
+      if (count === seqLength){
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+        };
+      }
+  }
+
+  //check vertical
+  count=0;
+  winningSquence = [];
+  start = x-(seqLength-1)<0?0:x-(seqLength-1);
+  end = x+(seqLength-1)>size-1?size-1:x+(seqLength-1);
+  for(let i=start;i<=end;i++) {
+      if (!(input.lastTurnPlayerId === input.positions[i][y])) {
+          count = 0;
+          continue;
+      } else {
+          count++;
+          winningSquence.push({x:i,y:y});
+      }
+      if (count == seqLength) {
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+        };
+      }
+  }
+
+  //check right diagonal
+  count=1;
+  winningSquence = [{x:x,y:y}];
+  let xPosLeft = x-1;
+  let yPosLeft = y-1;
+  while(xPosLeft>=0 && yPosLeft>=0) {
+      if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
+          break;
+      }
+      else{
+          count++;
+          winningSquence.push({x:xPosLeft,y:yPosLeft});
+      }
+      xPosLeft--; yPosLeft--;
+      if (count == seqLength) {
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+        };
+      }
+  }
+  let xPosRight = x+1;
+  let yPosRight = y+1;
+  while(xPosRight<size && yPosRight<size) {
+    if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
+        break;
+    }
+    else{
+      count++;
+      winningSquence.push({x:xPosRight,y:yPosRight});
+    }
+    xPosRight--; xPosRight--;
+    if (count == seqLength) {
+      return {
+        winner: input.lastTurnPlayerId, // winning player
+        winningSquence: winningSquence,
+      };
+    }
+  }
+
+  //check left diagonal
+  count=1;
+  winningSquence = [{x:x,y:y}];
+  xPosLeft = x+1;xPosRight = x-1;
+  yPosLeft = y-1;yPosRight = y+1;
+  while(xPosLeft<size && yPosLeft>=0) {
+    if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
+      break;
+    }
+    else{
+      count++;
+      winningSquence.push({x:xPosLeft,y:yPosLeft});
+    }
+    xPosLeft++; yPosLeft--;
+    if (count == seqLength) {
+      return {
+        winner: input.lastTurnPlayerId, // winning player
+        winningSquence: winningSquence,
+      };
+    }
+  }
+  while(xPosRight>=0 && yPosRight<size) {
+    if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
+      break;
+    }
+    else{
+      count++;
+      winningSquence.push({x:xPosRight,y:yPosRight});
+    }
+    xPosRight--; yPosRight++;
+    if (count == seqLength) {
+      return {
+        winner: input.lastTurnPlayerId, // winning player
+        winningSquence: winningSquence,
+      };
+    }
+  }
   return null;
 };
 
