@@ -177,6 +177,7 @@ interface CalculateWinnerInputType {
   positions: string[][];
   winningSequenceLength: number;
   lastTurnPlayerId: string;
+  lastTurnPosition: WinningSequence;
 }
 
 interface WinningSequence {
