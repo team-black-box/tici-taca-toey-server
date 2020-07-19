@@ -171,6 +171,23 @@ const COMPLETED_GAME_STATUS = [
   GameStatus.GAME_WON,
 ];
 
+// Winner Calculation Enhancements
+
+interface CalculateWinnerInputType {
+  positions: string[][];
+  winningSequenceLength: number;
+}
+
+interface WinningSequence {
+  x: number;
+  y: number;
+}
+
+interface CalculateWinnerOutputType {
+  winner: string;
+  winningSquence: WinningSequence;
+}
+
 export {
   Game,
   Player,
@@ -189,4 +206,7 @@ export {
   Response,
   PlayerDisconnectMessage,
   COMPLETED_GAME_STATUS,
+  CalculateWinnerInputType,
+  WinningSequence,
+  CalculateWinnerOutputType,
 };
