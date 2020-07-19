@@ -34,5 +34,10 @@
   "devDependencies": {
     "ava": "^3.10.1",
     "nyc": "^15.1.0"
+  },
+  "ava": {
+    "files": [
+      "!**/TiciTacaToeyGameEngineManualTest.spec.js"
+    ]
   }
 }
