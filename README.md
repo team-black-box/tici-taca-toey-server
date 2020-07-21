@@ -5,3 +5,8 @@
 A multiplayer web sockets server for the game of tic tac toe
 
 For a client implementation checkout the web project: [tici-taca-toey-web](https://github.com/subramanian-elavathur/tici-taca-toey-web)
+
+## Building the project
+
+npm i
+npm run build
