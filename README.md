@@ -10,3 +10,11 @@ For a client implementation checkout the web project: [tici-taca-toey-web](https
 
 npm i
 npm run build
+
+## Running Tests
+
+npm test
+
+## Starting the Server
+
+npm start
