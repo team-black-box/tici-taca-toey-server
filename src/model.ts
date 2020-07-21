@@ -8,7 +8,8 @@ interface Game {
   players: string[];
   spectators: string[];
   winner: string;
-  winningSequence: string;
+  winningSequence: WinningSequence[];
+  winningSequenceLength: number;
   status: GameStatus;
   turn: string;
 }
@@ -66,6 +67,7 @@ interface StartGameMessage {
   name: string;
   boardSize: number;
   playerCount: number;
+  winningSequenceLength?: number;
   connection?: WebSocket;
   playerId?: string;
   gameId?: string;
@@ -152,6 +154,7 @@ enum ErrorCodes {
   BOARD_SIZE_LESS_THAN_2 = "BOARD_SIZE_LESS_THAN_2",
   PLAYER_COUNT_LESS_THAN_2 = "PLAYER_COUNT_LESS_THAN_2",
   PLAYER_COUNT_MUST_BE_LESS_THAN_BOARD_SIZE = "PLAYER_COUNT_MUST_BE_LESS_THAN_BOARD_SIZE",
+  WIN_SEQ_LENGTH_MUST_BE_LESS_THAN_OR_EQUAL_TO_BOARD_SIZE = "WINNING_SEQUENCE_LENGTH_MUST_BE_LESS_THAN_OR_EQUAL_TO_BOARD_SIZE",
   BOARD_SIZE_CANNOT_BE_GREATER_THAN_12 = "BOARD_SIZE_CANNOT_BE_GREATER_THAN_12",
   PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10 = "PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10",
   SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10 = "SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10",

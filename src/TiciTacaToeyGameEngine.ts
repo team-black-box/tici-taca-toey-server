@@ -36,7 +36,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
           resolve(this);
         })
         .catch((error) => {
-          console.error(error);
           if (notify) {
             this.notifyError.bind(this)(error);
           }
@@ -77,6 +76,14 @@ class TiciTacaToeyGameEngine implements GameEngine {
           if (parseInt("" + message.playerCount) > 10) {
             reject({
               error: ErrorCodes.PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10,
+              message,
+            });
+          }
+          if (
+            parseInt("" + message.boardSize) < parseInt("" + message.winningSequenceLength)
+          ) {
+            reject({
+              error: ErrorCodes.WIN_SEQ_LENGTH_MUST_BE_LESS_THAN_OR_EQUAL_TO_BOARD_SIZE,
               message,
             });
           }
@@ -186,6 +193,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
           playerCount: message.playerCount
             ? parseInt("" + message.playerCount)
             : 2,
+          winningSequenceLength: message.winningSequenceLength
+          ? parseInt("" + message.winningSequenceLength)
+          : parseInt("" + message.boardSize),
           players: [message.playerId],
           spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
@@ -249,7 +259,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
           },
         };
 
-        const winner = calculateWinner(this.games[message.gameId]);
+        const winner = calculateWinnerV2(
+          {
+            positions: game.positions,
+            winningSequenceLength: game.winningSequenceLength,
+            lastTurnPlayerId: message.playerId,
+            lastTurnPosition: { x : message.coordinateX, y : message.coordinateY }
+          });
         const tie = checkForDraw(this.games[message.gameId]);
 
         if (winner) {
@@ -258,9 +274,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
             [message.gameId]: {
               ...this.games[message.gameId],
               status: GameStatus.GAME_WON,
-              winner: winner.playerId,
+              winner: winner.winner,
               turn: "",
-              winningSequence: winner.sequence,
+              winningSequence: winner.winningSquence,
             },
           };
         } else if (tie) {
