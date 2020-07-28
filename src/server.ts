@@ -57,14 +57,6 @@ log(engine);
 
 wss.on("connection", (ws) => {
   const playerId = uuid();
-  engine
-    .play({
-      type: MessageTypes.REGISTER_PLAYER,
-      playerId,
-      name: "",
-      connection: ws,
-    })
-    .then(log);
   ws.on("message", (data: string) => {
     let message: Message = null;
     try {
