@@ -208,7 +208,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.JOIN_GAME: {
-        if (!this.players[message.playerId]){
+        if (!(message.playerId in this.players)){
           this.players = addPlayer(this.players, message.playerId, "", message.connection);
         }
 
@@ -421,11 +421,10 @@ const addPlayer = (
   name: string,
   connection: WebSocket
   ): any => {
-  players = {
+  return {
     ...players,
     [playerId]: { "playerId": playerId, "name": name, "connection": connection },
   };
-  return players;
 }
 
 const calculateNextTurn = (
