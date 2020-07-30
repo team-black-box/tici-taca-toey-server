@@ -21,10 +21,12 @@ const EMPTY_POSITION = "-";
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
   players;
+  robots;
 
   constructor() {
     this.games = {};
     this.players = {};
+    this.robots = {};
   }
 
   play(message: Message, notify: boolean = true) {
@@ -50,6 +52,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
     return new Promise<Message>((resolve, reject) => {
       switch (message.type) {
         case MessageTypes.REGISTER_PLAYER:
+          break;
+        case MessageTypes.REGISTER_ROBOT:
           break;
         case MessageTypes.PLAYER_DISCONNECT:
           break;
@@ -155,6 +159,14 @@ class TiciTacaToeyGameEngine implements GameEngine {
     switch (message.type) {
       case MessageTypes.REGISTER_PLAYER: {
         this.players = addPlayer(this.players, message.playerId, message.name, message.connection);
+        break;
+      }
+      case MessageTypes.REGISTER_ROBOT: {
+        const { type, ...robotData } = message;
+        this.robots = {
+          ...this.robots,
+          [message.playerId]: { ...robotData },
+        };
         break;
       }
       case MessageTypes.PLAYER_DISCONNECT: {
@@ -306,7 +318,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
   notify(message: Message) {
     switch (message.type) {
-      case MessageTypes.REGISTER_PLAYER:
+      case MessageTypes.REGISTER_PLAYER, MessageTypes.REGISTER_ROBOT:
         const response: Response = {
           type: message.type,
           name: message.name,

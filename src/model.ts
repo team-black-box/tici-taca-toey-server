@@ -23,6 +23,10 @@ interface ConnectedPlayer extends Player {
   connection: WebSocket;
 }
 
+interface RobotPlayer extends ConnectedPlayer {
+  maxGames: number;
+}
+
 interface GameStore {
   [key: string]: Game;
 }
@@ -41,9 +45,14 @@ interface PlayerStore {
   [key: string]: ConnectedPlayer;
 }
 
+interface RobotStore {
+  [key: string]: RobotPlayer;
+}
+
 interface GameEngine {
   games: GameStore;
   players: PlayerStore;
+  robots: RobotStore;
   play: (message: Message, notify: boolean) => Promise<GameEngine>;
   validate: (message: Message) => Promise<Message>;
   transition: (message: Message) => void;
@@ -57,6 +66,15 @@ interface GameEngine {
 interface RegisterPlayerMessage {
   type: MessageTypes.REGISTER_PLAYER;
   name: string;
+  connection: WebSocket;
+  playerId?: string;
+  gameId?: string;
+}
+
+interface RegisterRobotMessage {
+  type: MessageTypes.REGISTER_ROBOT;
+  name: string;
+  maxGames: number;
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
@@ -105,6 +123,7 @@ interface PlayerDisconnectMessage {
 
 type Message =
   | RegisterPlayerMessage
+  | RegisterRobotMessage
   | StartGameMessage
   | JoinGameMessage
   | SpectateGameMessage
@@ -117,6 +136,10 @@ interface RegisterPlayerResponse extends Player {
   type: MessageTypes.REGISTER_PLAYER;
 }
 
+interface RegisterRobotResponse extends Player {
+  type: MessageTypes.REGISTER_ROBOT;
+}
+
 interface GameActionResponse extends GameState {
   type:
     | MessageTypes.START_GAME
@@ -127,7 +150,7 @@ interface GameActionResponse extends GameState {
     | MessageTypes.GAME_COMPLETE;
 }
 
-type Response = RegisterPlayerResponse | GameActionResponse;
+type Response = RegisterPlayerResponse | RegisterRobotResponse | GameActionResponse;
 
 interface GameError {
   error: ErrorCodes;
@@ -136,6 +159,7 @@ interface GameError {
 
 enum MessageTypes {
   REGISTER_PLAYER = "REGISTER_PLAYER",
+  REGISTER_ROBOT = "REGISTER_ROBOT",
   START_GAME = "START_GAME",
   JOIN_GAME = "JOIN_GAME",
   MAKE_MOVE = "MAKE_MOVE",
