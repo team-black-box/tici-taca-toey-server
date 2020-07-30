@@ -160,7 +160,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.REGISTER_PLAYER: {
         this.players = addPlayer(this.players, message.playerId, message.name, message.connection);
         break;
+<<<<<<< HEAD
       }
+=======
+      }      
+>>>>>>> a3c18cb626bbd7fa2ac0ef89dcd1feb2cceea3d3
       case MessageTypes.REGISTER_ROBOT: {
         const { type, ...robotData } = message;
         this.robots = {
