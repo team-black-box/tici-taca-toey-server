@@ -12,6 +12,8 @@ import {
   CalculateWinnerInputType,
   CalculateWinnerOutputType,
 } from "./model";
+import WebSocket = require("ws");
+
 const uniq = require("lodash.uniq");
 
 const EMPTY_POSITION = "-";
@@ -152,11 +154,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
   transition(message: Message) {
     switch (message.type) {
       case MessageTypes.REGISTER_PLAYER: {
-        const { type, ...playerData } = message;
-        this.players = {
-          ...this.players,
-          [message.playerId]: { ...playerData },
-        };
+        this.players = addPlayer(this.players, message.playerId, message.name, message.connection);
         break;
       }
       case MessageTypes.PLAYER_DISCONNECT: {
@@ -185,6 +183,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.START_GAME: {
+        if (!(message.playerId in this.players)){
+          this.players = addPlayer(this.players, message.playerId, "", message.connection);
+        }
         const game = {
           gameId: message.gameId,
           name: message.name,
@@ -207,6 +208,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.JOIN_GAME: {
+        if (!(message.playerId in this.players)){
+          this.players = addPlayer(this.players, message.playerId, "", message.connection);
+        }
+
         const gameId = message.gameId;
 
         const updatedPlayersList = uniq([
@@ -406,6 +411,20 @@ class TiciTacaToeyGameEngine implements GameEngine {
       JSON.stringify({ ...error, message, type: "ERROR" })
     );
   }
+}
+
+const addPlayer = (
+  players: {
+    [key: string]: ConnectedPlayer;
+  },
+  playerId: string,
+  name: string,
+  connection: WebSocket
+  ): any => {
+  return {
+    ...players,
+    [playerId]: { "playerId": playerId, "name": name, "connection": connection },
+  };
 }
 
 const calculateNextTurn = (
