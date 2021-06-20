@@ -29,7 +29,7 @@
     "lodash.uniq": "^4.5.0",
     "typescript": "^3.9.5",
     "uuid": "^8.1.0",
-    "ws": "^7.3.0"
+    "ws": "^7.4.6"
   },
   "devDependencies": {
     "ava": "^3.10.1",
