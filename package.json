@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/subramanian-elavathur/tici-taca-toey-server#readme",
   "dependencies": {
-    "@types/lodash.uniq": "^4.5.6",
+    "@types/lodash.uniq": "^4.5.7",
     "@types/node": "^18.7.17",
     "@types/uuid": "^8.0.0",
     "@types/ws": "^7.2.5",
