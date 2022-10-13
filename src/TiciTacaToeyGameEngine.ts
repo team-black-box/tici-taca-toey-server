@@ -13,8 +13,7 @@ import {
   CalculateWinnerOutputType,
 } from "./model";
 import WebSocket = require("ws");
-
-const uniq = require("lodash.uniq");
+import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
 
@@ -29,8 +28,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
     this.robots = {};
   }
 
-  play(message: Message, notify: boolean = true) {
-    return new Promise<GameEngine>((resolve, reject) => {
+  play(message: Message, notify = true) {
+    return new Promise<GameEngine>((resolve) => {
       this.validate(message)
         .then((message) => {
           this.transition(message);
@@ -86,10 +85,12 @@ class TiciTacaToeyGameEngine implements GameEngine {
             });
           }
           if (
-            parseInt("" + message.boardSize) < parseInt("" + message.winningSequenceLength)
+            parseInt("" + message.boardSize) <
+            parseInt("" + message.winningSequenceLength)
           ) {
             reject({
-              error: ErrorCodes.WIN_SEQ_LENGTH_MUST_BE_LESS_THAN_OR_EQUAL_TO_BOARD_SIZE,
+              error:
+                ErrorCodes.WIN_SEQ_LENGTH_MUST_BE_LESS_THAN_OR_EQUAL_TO_BOARD_SIZE,
               message,
             });
           }
@@ -158,9 +159,14 @@ class TiciTacaToeyGameEngine implements GameEngine {
   transition(message: Message) {
     switch (message.type) {
       case MessageTypes.REGISTER_PLAYER: {
-        this.players = addPlayer(this.players, message.playerId, message.name, message.connection);
+        this.players = addPlayer(
+          this.players,
+          message.playerId,
+          message.name,
+          message.connection
+        );
         break;
-      }      
+      }
       case MessageTypes.REGISTER_ROBOT: {
         const { type, ...robotData } = message;
         this.robots = {
@@ -195,8 +201,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.START_GAME: {
-        if (!(message.playerId in this.players)){
-          this.players = addPlayer(this.players, message.playerId, "", message.connection);
+        if (!(message.playerId in this.players)) {
+          this.players = addPlayer(
+            this.players,
+            message.playerId,
+            "",
+            message.connection
+          );
         }
         const game = {
           gameId: message.gameId,
@@ -207,8 +218,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ? parseInt("" + message.playerCount)
             : 2,
           winningSequenceLength: message.winningSequenceLength
-          ? parseInt("" + message.winningSequenceLength)
-          : parseInt("" + message.boardSize),
+            ? parseInt("" + message.winningSequenceLength)
+            : parseInt("" + message.boardSize),
           players: [message.playerId],
           spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
@@ -220,8 +231,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.JOIN_GAME: {
-        if (!(message.playerId in this.players)){
-          this.players = addPlayer(this.players, message.playerId, "", message.connection);
+        if (!(message.playerId in this.players)) {
+          this.players = addPlayer(
+            this.players,
+            message.playerId,
+            "",
+            message.connection
+          );
         }
 
         const gameId = message.gameId;
@@ -276,13 +292,12 @@ class TiciTacaToeyGameEngine implements GameEngine {
           },
         };
 
-        const winner = calculateWinnerV2(
-          {
-            positions: game.positions,
-            winningSequenceLength: game.winningSequenceLength,
-            lastTurnPlayerId: message.playerId,
-            lastTurnPosition: { x : message.coordinateX, y : message.coordinateY }
-          });
+        const winner = calculateWinnerV2({
+          positions: game.positions,
+          winningSequenceLength: game.winningSequenceLength,
+          lastTurnPlayerId: message.playerId,
+          lastTurnPosition: { x: message.coordinateX, y: message.coordinateY },
+        });
         const tie = checkForDraw(this.games[message.gameId]);
 
         if (winner) {
@@ -312,13 +327,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
     }
   }
 
-  disconnectPlayer(playerId: string) {}
+  disconnectPlayer(playerId: string) {
+    console.log(`disconnecting player ${playerId}`);
+  }
 
   // functions with side effects - websocket send operation
 
   notify(message: Message) {
     switch (message.type) {
-      case MessageTypes.REGISTER_PLAYER, MessageTypes.REGISTER_ROBOT:
+      case (MessageTypes.REGISTER_PLAYER, MessageTypes.REGISTER_ROBOT): {
         const response: Response = {
           type: message.type,
           name: message.name,
@@ -326,6 +343,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
         };
         message.connection.send(JSON.stringify(response));
         break;
+      }
       case MessageTypes.PLAYER_DISCONNECT:
         Object.values(this.games)
           .filter((each: Game) => each.players.includes(message.playerId))
@@ -432,12 +450,12 @@ const addPlayer = (
   playerId: string,
   name: string,
   connection: WebSocket
-  ): any => {
+): any => {
   return {
     ...players,
-    [playerId]: { "playerId": playerId, "name": name, "connection": connection },
+    [playerId]: { playerId: playerId, name: name, connection: connection },
   };
-}
+};
 
 const calculateNextTurn = (
   players: string[],
@@ -537,87 +555,87 @@ const calculateWinner = (
 export const calculateWinnerV2 = (
   input: CalculateWinnerInputType
 ): CalculateWinnerOutputType => {
-  let start=0;
-  let end=0;
-  let count=0;
-  let winningSquence=[];
+  let start = 0;
+  let end = 0;
+  let count = 0;
+  let winningSquence = [];
   const size = input.positions.length;
   const seqLength = input.winningSequenceLength;
   const x = input.lastTurnPosition.x;
   const y = input.lastTurnPosition.y;
 
   //check horizontal
-  start = y-(seqLength-1)<0?0:y-(seqLength-1);
-  end = y+(seqLength-1)>size-1?size-1:y+(seqLength-1);
-  for(let i=start;i<=end;i++) {
-      if (!(input.lastTurnPlayerId === input.positions[x][i])) {
-          count = 0;
-          continue;
-      } else {
-          count++;
-          winningSquence.push({x:x,y:i});
-      }
-      if (count === seqLength){
-        return {
-          winner: input.lastTurnPlayerId, // winning player
-          winningSquence: winningSquence,
-        };
-      }
+  start = y - (seqLength - 1) < 0 ? 0 : y - (seqLength - 1);
+  end = y + (seqLength - 1) > size - 1 ? size - 1 : y + (seqLength - 1);
+  for (let i = start; i <= end; i++) {
+    if (!(input.lastTurnPlayerId === input.positions[x][i])) {
+      count = 0;
+      continue;
+    } else {
+      count++;
+      winningSquence.push({ x: x, y: i });
+    }
+    if (count === seqLength) {
+      return {
+        winner: input.lastTurnPlayerId, // winning player
+        winningSquence: winningSquence,
+      };
+    }
   }
 
   //check vertical
-  count=0;
+  count = 0;
   winningSquence = [];
-  start = x-(seqLength-1)<0?0:x-(seqLength-1);
-  end = x+(seqLength-1)>size-1?size-1:x+(seqLength-1);
-  for(let i=start;i<=end;i++) {
-      if (!(input.lastTurnPlayerId === input.positions[i][y])) {
-          count = 0;
-          continue;
-      } else {
-          count++;
-          winningSquence.push({x:i,y:y});
-      }
-      if (count == seqLength) {
-        return {
-          winner: input.lastTurnPlayerId, // winning player
-          winningSquence: winningSquence,
-        };
-      }
+  start = x - (seqLength - 1) < 0 ? 0 : x - (seqLength - 1);
+  end = x + (seqLength - 1) > size - 1 ? size - 1 : x + (seqLength - 1);
+  for (let i = start; i <= end; i++) {
+    if (!(input.lastTurnPlayerId === input.positions[i][y])) {
+      count = 0;
+      continue;
+    } else {
+      count++;
+      winningSquence.push({ x: i, y: y });
+    }
+    if (count == seqLength) {
+      return {
+        winner: input.lastTurnPlayerId, // winning player
+        winningSquence: winningSquence,
+      };
+    }
   }
 
   //check right diagonal
-  count=1;
-  winningSquence = [{x:x,y:y}];
-  let xPosLeft = x-1;
-  let yPosLeft = y-1;
-  while(xPosLeft>=0 && yPosLeft>=0) {
-      if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
-          break;
-      }
-      else{
-          count++;
-          winningSquence.push({x:xPosLeft,y:yPosLeft});
-      }
-      xPosLeft--; yPosLeft--;
-      if (count == seqLength) {
-        return {
-          winner: input.lastTurnPlayerId, // winning player
-          winningSquence: winningSquence,
-        };
-      }
-  }
-  let xPosRight = x+1;
-  let yPosRight = y+1;
-  while(xPosRight<size && yPosRight<size) {
-    if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
-        break;
-    }
-    else{
+  count = 1;
+  winningSquence = [{ x: x, y: y }];
+  let xPosLeft = x - 1;
+  let yPosLeft = y - 1;
+  while (xPosLeft >= 0 && yPosLeft >= 0) {
+    if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
+      break;
+    } else {
       count++;
-      winningSquence.push({x:xPosRight,y:yPosRight});
+      winningSquence.push({ x: xPosLeft, y: yPosLeft });
     }
-    xPosRight--; xPosRight--;
+    xPosLeft--;
+    yPosLeft--;
+    if (count == seqLength) {
+      return {
+        winner: input.lastTurnPlayerId, // winning player
+        winningSquence: winningSquence,
+      };
+    }
+  }
+  let xPosRight = x + 1;
+  let yPosRight = y + 1;
+  while (xPosRight < size && yPosRight < size) {
+    if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
+      break;
+    } else {
+      count++;
+      winningSquence.push({ x: xPosRight, y: yPosRight });
+    }
+    xPosRight--;
+    xPosRight--;
     if (count == seqLength) {
       return {
         winner: input.lastTurnPlayerId, // winning player
@@ -627,19 +645,21 @@ export const calculateWinnerV2 = (
   }
 
   //check left diagonal
-  count=1;
-  winningSquence = [{x:x,y:y}];
-  xPosLeft = x+1;xPosRight = x-1;
-  yPosLeft = y-1;yPosRight = y+1;
-  while(xPosLeft<size && yPosLeft>=0) {
+  count = 1;
+  winningSquence = [{ x: x, y: y }];
+  xPosLeft = x + 1;
+  xPosRight = x - 1;
+  yPosLeft = y - 1;
+  yPosRight = y + 1;
+  while (xPosLeft < size && yPosLeft >= 0) {
     if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
       break;
-    }
-    else{
+    } else {
       count++;
-      winningSquence.push({x:xPosLeft,y:yPosLeft});
+      winningSquence.push({ x: xPosLeft, y: yPosLeft });
     }
-    xPosLeft++; yPosLeft--;
+    xPosLeft++;
+    yPosLeft--;
     if (count == seqLength) {
       return {
         winner: input.lastTurnPlayerId, // winning player
@@ -647,15 +667,15 @@ export const calculateWinnerV2 = (
       };
     }
   }
-  while(xPosRight>=0 && yPosRight<size) {
+  while (xPosRight >= 0 && yPosRight < size) {
     if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
       break;
-    }
-    else{
+    } else {
       count++;
-      winningSquence.push({x:xPosRight,y:yPosRight});
+      winningSquence.push({ x: xPosRight, y: yPosRight });
     }
-    xPosRight--; yPosRight++;
+    xPosRight--;
+    yPosRight++;
     if (count == seqLength) {
       return {
         winner: input.lastTurnPlayerId, // winning player

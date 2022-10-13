@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import { v4 as uuid } from "uuid";
 import WebSocket = require("ws");
 import https = require("https");
