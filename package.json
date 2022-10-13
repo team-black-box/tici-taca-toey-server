@@ -24,7 +24,7 @@
   "dependencies": {
     "@types/lodash.uniq": "^4.5.7",
     "@types/node": "^18.8.5",
-    "@types/uuid": "^8.0.0",
+    "@types/uuid": "^8.3.4",
     "@types/ws": "^8.5.3",
     "lodash.uniq": "^4.5.0",
     "typescript": "^4.8.3",
