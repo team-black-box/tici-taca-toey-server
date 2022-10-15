@@ -2,7 +2,6 @@ import { test } from "good-vibes";
 import { calculateWinnerV2 } from "../src/TiciTacaToeyGameEngine";
 
 test("Right Diagonal size 3 match", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -18,7 +17,6 @@ test("Right Diagonal size 3 match", async (c) => {
 });
 
 test("Right Diagonal size 4 match", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -35,7 +33,6 @@ test("Right Diagonal size 4 match", async (c) => {
 });
 
 test("Horizontal size 3", async (c) => {
-  c.log("Simple Check no match");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -51,7 +48,6 @@ test("Horizontal size 3", async (c) => {
 });
 
 test("Vertical size 3 match", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -67,7 +63,6 @@ test("Vertical size 3 match", async (c) => {
 });
 
 test("Left Diagonal size 4 match", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -84,7 +79,6 @@ test("Left Diagonal size 4 match", async (c) => {
 });
 
 test("Left Diagonal size 3 match", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -100,7 +94,6 @@ test("Left Diagonal size 3 match", async (c) => {
 });
 
 test("No Winner ", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
@@ -116,7 +109,6 @@ test("No Winner ", async (c) => {
 });
 
 test("Left Diagonal size 3 no match", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [

@@ -2,7 +2,6 @@ import { test } from "good-vibes";
 import { calculateWinnerV2 } from "../src/TiciTacaToeyGameEngine";
 
 test("Engine Tests", async (c) => {
-  c.log("Simple Check");
   const output = calculateWinnerV2({
     lastTurnPlayerId: "x",
     positions: [
