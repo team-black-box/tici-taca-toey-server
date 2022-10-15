@@ -12,7 +12,7 @@ test("Right Diagonal size 3 match", async (c) => {
     winningSequenceLength: 3,
     lastTurnPosition: { x: 2, y: 2 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -28,7 +28,7 @@ test("Right Diagonal size 4 match", async (c) => {
     winningSequenceLength: 4,
     lastTurnPosition: { x: 2, y: 2 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -43,7 +43,7 @@ test("Horizontal size 3", async (c) => {
     winningSequenceLength: 3,
     lastTurnPosition: { x: 0, y: 2 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -58,7 +58,7 @@ test("Vertical size 3 match", async (c) => {
     winningSequenceLength: 3,
     lastTurnPosition: { x: 2, y: 0 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -74,7 +74,7 @@ test("Left Diagonal size 4 match", async (c) => {
     winningSequenceLength: 4,
     lastTurnPosition: { x: 0, y: 3 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -89,7 +89,7 @@ test("Left Diagonal size 3 match", async (c) => {
     winningSequenceLength: 3,
     lastTurnPosition: { x: 0, y: 2 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -104,7 +104,7 @@ test("No Winner ", async (c) => {
     winningSequenceLength: 3,
     lastTurnPosition: { x: 2, y: 1 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
 
@@ -119,6 +119,6 @@ test("Left Diagonal size 3 no match", async (c) => {
     winningSequenceLength: 3,
     lastTurnPosition: { x: 1, y: 1 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
