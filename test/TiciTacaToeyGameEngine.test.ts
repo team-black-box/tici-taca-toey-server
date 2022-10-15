@@ -17,6 +17,6 @@ test("Engine Tests", async (c) => {
     winningSequenceLength: 4,
     lastTurnPosition: { x: 1, y: 5 },
   });
-  await c.snapshot("Simple Winner Calculation", output);
+  await c.snapshot("Result", output);
   c.done();
 });
