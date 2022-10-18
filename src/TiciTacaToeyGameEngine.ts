@@ -19,20 +19,36 @@ import uniq from "lodash.uniq";
 const EMPTY_POSITION = "-";
 const DEFAULT_TIME = 30;
 
-function timer(player: Player, pauseTimer: boolean) {
-  const intervalId = setInterval(() => {
-    // notify the client of the updated times
-    console.log(player.playerId + " " + player.time);
-    if (pauseTimer) {
-      clearInterval(intervalId);
-    }
-    if (player.time === 0) {
-      clearInterval(intervalId);
-      console.log("Time Out");
-    }
-    player.time = player.time - 1;
-  }, 1000);
+class timer {
+  intervalId;
+  counter = DEFAULT_TIME;
+  // constructor() {}
+  start() {
+    this.intervalId = setInterval(() => {
+      this.counter = this.counter - 1;
+      console.log(this.counter);
+      if (this.counter === 0) clearInterval(this.intervalId);
+    }, 1000);
+  }
+  clear() {
+    clearInterval(this.intervalId);
+  }
 }
+
+// function timer(player: Player, pauseTimer: boolean) {
+//   const intervalId = setInterval(() => {
+//     // notify the client of the updated times
+//     console.log(player.playerId + " " + player.time);
+//     if (pauseTimer) {
+//       clearInterval(intervalId);
+//     }
+//     if (player.time === 0) {
+//       clearInterval(intervalId);
+//       console.log("Time Out");
+//     }
+//     player.time = player.time - 1;
+//   }, 1000);
+// }
 
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
@@ -300,7 +316,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.MAKE_MOVE: {
-        timer(this.players[message.playerId], true);
+        // timer(this.players[message.playerId], true);
+        // console.log(this.players[message.playerId].timer);
+        this.players[message.playerId].timer.clear(); // stopping timer of the player who made the move
         const game = this.games[message.gameId];
         const nextPlayer = calculateNextTurn(
           game.players,
@@ -350,8 +368,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
             },
           };
         }
-        // stopping timer of the player who made the move and starting the timer of the next player
-        timer(this.players[nextPlayer], false);
+        // timer(this.players[nextPlayer], false);
+        // this.players.timer.start();
+        this.players[nextPlayer].timer.start();
         break;
       }
     }
@@ -370,7 +389,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           type: message.type,
           name: message.name,
           playerId: message.playerId,
-          time: message.time,
+          timer: message.timer,
         };
         message.connection.send(JSON.stringify(response));
         break;
@@ -490,7 +509,7 @@ const addPlayer = (
       playerId: playerId,
       name: name,
       connection: connection,
-      time: DEFAULT_TIME,
+      timer: new timer(),
     },
   };
 };
@@ -503,9 +522,8 @@ const calculateNextTurn = (
 ): string => {
   // need to find next player who's time is not zero
   let nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
-  // console.log(PlayersObj);
 
-  while (PlayersObj[players[nextPlayerIndex]].time === 0) {
+  while (PlayersObj[players[nextPlayerIndex]].timer.counter === 0) {
     nextPlayerIndex += 1 % playerCount;
   }
   return players[nextPlayerIndex];

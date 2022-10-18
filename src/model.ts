@@ -18,7 +18,7 @@ interface Game {
 interface Player {
   name: string;
   playerId: string;
-  time: number;
+  timer: any;
 }
 
 interface ConnectedPlayer extends Player {
@@ -71,7 +71,7 @@ interface RegisterPlayerMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  time: number;
+  timer: any;
 }
 
 interface RegisterRobotMessage {
@@ -81,7 +81,7 @@ interface RegisterRobotMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  time: number;
+  timer: any;
 }
 
 interface StartGameMessage {
