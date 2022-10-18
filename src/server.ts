@@ -77,8 +77,16 @@ wss.on("connection", (ws) => {
       gameId: message && message.gameId ? message.gameId : uuid(), // nullish coalescing!!
       connection: ws,
     };
-
-    engine.play(enrichedMessage).then(log);
+    try {
+      engine.play(enrichedMessage).then(log);
+    } catch (exception) {
+      fs.writeFile("../errorLogs/serverError.log", exception, (error) => {
+        if (error) {
+          console.error(error);
+        }
+        // file written successfully
+      });
+    }
   });
 
   ws.on("close", function close() {
@@ -87,6 +95,15 @@ wss.on("connection", (ws) => {
       type: MessageTypes.PLAYER_DISCONNECT,
       playerId,
     };
-    engine.play(playerDisconnectMessage).then(log);
+    try {
+      engine.play(playerDisconnectMessage).then(log);
+    } catch (exception) {
+      fs.writeFile("../errorLogs/serverError.log", exception, (error) => {
+        if (error) {
+          console.error(error);
+        }
+        // file written successfully
+      });
+    }
   });
 });

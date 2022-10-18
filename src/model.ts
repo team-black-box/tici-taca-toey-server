@@ -17,6 +17,7 @@ interface Game {
 interface Player {
   name: string;
   playerId: string;
+  // add time here
 }
 
 interface ConnectedPlayer extends Player {
@@ -69,6 +70,7 @@ interface RegisterPlayerMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
+  // add time
 }
 
 interface RegisterRobotMessage {
@@ -78,6 +80,7 @@ interface RegisterRobotMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
+  // add time
 }
 
 interface StartGameMessage {
@@ -150,7 +153,10 @@ interface GameActionResponse extends GameState {
     | MessageTypes.GAME_COMPLETE;
 }
 
-type Response = RegisterPlayerResponse | RegisterRobotResponse | GameActionResponse;
+type Response =
+  | RegisterPlayerResponse
+  | RegisterRobotResponse
+  | GameActionResponse;
 
 interface GameError {
   error: ErrorCodes;
