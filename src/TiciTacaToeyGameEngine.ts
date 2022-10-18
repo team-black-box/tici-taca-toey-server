@@ -19,14 +19,15 @@ import uniq from "lodash.uniq";
 const EMPTY_POSITION = "-";
 const DEFAULT_TIME = 30;
 
-function timer(player: Player, flag: boolean) {
+function timer(player: Player, pauseTimer: boolean) {
   const intervalId = setInterval(() => {
-    player.time = player.time - 1;
     // notify the client of the updated times
-    if (player.time === 0 || flag) {
+    if (player.time === 0 || pauseTimer) {
       clearInterval(intervalId);
 
-      if (!flag) {
+      player.time = player.time - 1;
+
+      if (!pauseTimer) {
         // ran out of time, other player should be declared winner
         console.log("Time Out");
         return false;
@@ -168,7 +169,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           }
           if (this.players[message.playerId].time === 0) {
             reject({ error: ErrorCodes.TIME_OUT, message });
-            // the other player won because this player has timed-out
+            // this player can't play because he doesn't have the time
           }
           break;
         }
@@ -249,8 +250,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ...this.games,
           [message.gameId]: game,
         };
-        // should start timer of the player when the game starts
-        // timer(this.players[message.playerId], false);
         break;
       }
       case MessageTypes.JOIN_GAME: {
@@ -500,6 +499,7 @@ const calculateNextTurn = (
   currentTurn: string,
   playerCount: number
 ): string => {
+  // need to find next player who's time is not zero
   const nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
   return players[nextPlayerIndex];
 };
