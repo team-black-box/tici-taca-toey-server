@@ -22,9 +22,15 @@ const DEFAULT_TIME = 30;
 function timer(player: Player, flag: boolean) {
   const intervalID = setInterval(() => {
     player.time = player.time - 1;
+    // notify the client of the updated times
     if (player.time === 0 || flag) {
       clearInterval(intervalID);
       // ran out of time, other player should be declared winner
+
+      if (!flag) {
+        // time out
+        console.log("Time Out");
+      }
     }
   }, 1000);
 }
@@ -297,6 +303,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
       }
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
+        const nextPlayer = calculateNextTurn(
+          game.players,
+          game.turn,
+          game.playerCount
+        );
         const positions = [...this.games[game.gameId].positions];
         positions[message.coordinateX][message.coordinateY] = message.playerId;
         this.games = {
@@ -304,10 +315,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
           [game.gameId]: {
             ...game,
             positions,
-            turn: calculateNextTurn(game.players, game.turn, game.playerCount),
+            turn: nextPlayer,
           },
         };
-        // pausing the timer of previous player
         const winner = calculateWinnerV2({
           positions: game.positions,
           winningSequenceLength: game.winningSequenceLength,
@@ -340,9 +350,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
             },
           };
         }
-
-        timer(game.gameId.turn, false); // starting the timer of other player if the current player didn't win
-        timer(game.players[message.playerId], true); // pausing the timer of the current player
+        timer(this.players[message.playerId], true); // stopping timer of the player who made the move and starting the timer of the next player
+        timer(this.players[nextPlayer], false);
         break;
       }
     }
