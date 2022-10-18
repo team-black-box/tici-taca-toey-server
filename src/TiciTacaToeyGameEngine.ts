@@ -57,37 +57,31 @@ class TiciTacaToeyGameEngine implements GameEngine {
         case MessageTypes.PLAYER_DISCONNECT:
           break;
         case MessageTypes.START_GAME: {
-          if (parseInt("" + message.boardSize) < 2) {
+          if (message.boardSize < 2) {
             reject({ error: ErrorCodes.BOARD_SIZE_LESS_THAN_2, message });
           }
-          if (parseInt("" + message.playerCount) < 2) {
+          if (message.playerCount < 2) {
             reject({ error: ErrorCodes.PLAYER_COUNT_LESS_THAN_2, message });
           }
-          if (
-            parseInt("" + message.playerCount) >=
-            parseInt("" + message.boardSize)
-          ) {
+          if (message.playerCount >= message.boardSize) {
             reject({
               error: ErrorCodes.PLAYER_COUNT_MUST_BE_LESS_THAN_BOARD_SIZE,
               message,
             });
           }
-          if (parseInt("" + message.boardSize) > 12) {
+          if (message.boardSize > 12) {
             reject({
               error: ErrorCodes.BOARD_SIZE_CANNOT_BE_GREATER_THAN_12,
               message,
             });
           }
-          if (parseInt("" + message.playerCount) > 10) {
+          if (message.playerCount > 10) {
             reject({
               error: ErrorCodes.PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10,
               message,
             });
           }
-          if (
-            parseInt("" + message.boardSize) <
-            parseInt("" + message.winningSequenceLength)
-          ) {
+          if (message.boardSize < message.winningSequenceLength) {
             reject({
               error:
                 ErrorCodes.WIN_SEQ_LENGTH_MUST_BE_LESS_THAN_OR_EQUAL_TO_BOARD_SIZE,
@@ -107,7 +101,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
             reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
           }
           if (this.games[message.gameId].players.includes(message.playerId)) {
-            reject({ error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME, message });
+            reject({
+              error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME,
+              message,
+            });
           }
           if (this.games[message.gameId].spectators.length >= 15) {
             reject({
@@ -122,7 +119,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
             reject({ error: ErrorCodes.GAME_NOT_FOUND, message });
           }
           if (this.games[message.gameId].players.includes(message.playerId)) {
-            reject({ error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME, message });
+            reject({
+              error: ErrorCodes.PLAYER_ALREADY_PART_OF_GAME,
+              message,
+            });
           }
           if (
             this.games[message.gameId].status !== GameStatus.WAITING_FOR_PLAYERS
@@ -212,14 +212,12 @@ class TiciTacaToeyGameEngine implements GameEngine {
         const game = {
           gameId: message.gameId,
           name: message.name,
-          boardSize: parseInt("" + message.boardSize),
+          boardSize: message.boardSize,
           positions: generateBoard(message.boardSize),
-          playerCount: message.playerCount
-            ? parseInt("" + message.playerCount)
-            : 2,
+          playerCount: message.playerCount ? message.playerCount : 2,
           winningSequenceLength: message.winningSequenceLength
-            ? parseInt("" + message.winningSequenceLength)
-            : parseInt("" + message.boardSize),
+            ? message.winningSequenceLength
+            : message.boardSize,
           players: [message.playerId],
           spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
@@ -296,7 +294,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
           positions: game.positions,
           winningSequenceLength: game.winningSequenceLength,
           lastTurnPlayerId: message.playerId,
-          lastTurnPosition: { x: message.coordinateX, y: message.coordinateY },
+          lastTurnPosition: {
+            x: message.coordinateX,
+            y: message.coordinateY,
+          },
         });
         const tie = checkForDraw(this.games[message.gameId]);
 
@@ -488,68 +489,6 @@ const checkForDraw = (game: Game): boolean => {
     }
   }
   return true;
-};
-
-// todo: refactor
-const calculateWinner = (
-  game: Game
-): { playerId: string; sequence: string } => {
-  // check all rows
-  for (let i = 0; i < game.boardSize; i++) {
-    const row: string[] = uniq(game.positions[i]);
-    if (row.includes("-")) {
-      continue;
-    }
-    if (row.length === 1) {
-      return {
-        playerId: row[0], // winning player
-        sequence: `row-${i}`,
-      };
-    }
-  }
-  // check all cols
-  for (let i = 0; i < game.boardSize; i++) {
-    const column = [];
-    for (let j = 0; j < game.boardSize; j++) {
-      column.push(game.positions[j][i]);
-    }
-    if (column.includes("-")) {
-      continue;
-    }
-    const uniqueValuesInRow = uniq(column);
-    if (uniqueValuesInRow.length === 1) {
-      return {
-        playerId: uniqueValuesInRow[0], // winning player
-        sequence: `column-${i}`,
-      };
-    }
-  }
-  // check diagonals
-  const diagonalLTR = [];
-  const diagonalRTL = [];
-  for (let i = 0; i < game.boardSize; i++) {
-    diagonalLTR.push(game.positions[i][i]);
-    diagonalRTL.push(game.positions[i][game.boardSize - 1 - i]);
-  }
-  if (!diagonalLTR.includes("-")) {
-    const uniqueDiagonalLTR = uniq(diagonalLTR);
-    if (uniqueDiagonalLTR.length === 1) {
-      return {
-        playerId: uniqueDiagonalLTR[0], // winning player
-        sequence: `Diagonal LTR`,
-      };
-    }
-  }
-  if (!diagonalRTL.includes("-")) {
-    const uniqueDiagonalRTL = uniq(diagonalRTL);
-    if (uniqueDiagonalRTL.length === 1) {
-      return {
-        playerId: uniqueDiagonalRTL[0], // winning player
-        sequence: `Diagonal RTL`,
-      };
-    }
-  }
-  return null;
 };
 
 export const calculateWinnerV2 = (
