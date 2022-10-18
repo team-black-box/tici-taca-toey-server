@@ -1,4 +1,5 @@
 import WebSocket = require("ws");
+
 interface Game {
   gameId: string;
   name: string;
@@ -17,7 +18,7 @@ interface Game {
 interface Player {
   name: string;
   playerId: string;
-  // add time here
+  time: number;
 }
 
 interface ConnectedPlayer extends Player {
@@ -70,7 +71,7 @@ interface RegisterPlayerMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  // add time
+  time: number;
 }
 
 interface RegisterRobotMessage {
@@ -80,7 +81,7 @@ interface RegisterRobotMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  // add time
+  time: number;
 }
 
 interface StartGameMessage {
@@ -188,6 +189,7 @@ enum ErrorCodes {
   BOARD_SIZE_CANNOT_BE_GREATER_THAN_12 = "BOARD_SIZE_CANNOT_BE_GREATER_THAN_12",
   PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10 = "PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10",
   SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10 = "SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10",
+  TIME_OUT = "TIME OUT",
 }
 
 enum GameStatus {

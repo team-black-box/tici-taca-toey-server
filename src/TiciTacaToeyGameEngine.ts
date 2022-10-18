@@ -11,11 +11,23 @@ import {
   COMPLETED_GAME_STATUS,
   CalculateWinnerInputType,
   CalculateWinnerOutputType,
+  Player,
 } from "./model";
 import WebSocket = require("ws");
 import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
+const DEFAULT_TIME = 30;
+
+function timer(player: Player, flag: boolean) {
+  const intervalID = setInterval(() => {
+    player.time = player.time - 1;
+    if (player.time === 0 || flag) {
+      clearInterval(intervalID);
+      // ran out of time, other player should be declared winner
+    }
+  }, 1000);
+}
 
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
@@ -147,6 +159,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ) {
             reject({ error: ErrorCodes.INVALID_MOVE, message });
           }
+          if (this.players[message.playerId].time === 0) {
+            reject({ error: ErrorCodes.TIME_OUT, message });
+            // the other player won because this player has timed-out
+          }
           break;
         }
         default:
@@ -226,6 +242,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ...this.games,
           [message.gameId]: game,
         };
+        // should start timer of the player when the game starts
+        // timer(this.players[message.playerId], false);
         break;
       }
       case MessageTypes.JOIN_GAME: {
@@ -289,7 +307,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             turn: calculateNextTurn(game.players, game.turn, game.playerCount),
           },
         };
-
+        // pausing the timer of previous player
         const winner = calculateWinnerV2({
           positions: game.positions,
           winningSequenceLength: game.winningSequenceLength,
@@ -323,6 +341,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
           };
         }
 
+        timer(game.gameId.turn, false); // starting the timer of other player if the current player didn't win
+        timer(game.players[message.playerId], true); // pausing the timer of the current player
         break;
       }
     }
@@ -341,6 +361,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           type: message.type,
           name: message.name,
           playerId: message.playerId,
+          time: message.time,
         };
         message.connection.send(JSON.stringify(response));
         break;
@@ -428,6 +449,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
           );
         });
+        // notify the client of the changes in timings
         break;
       }
       default:
@@ -454,7 +476,12 @@ const addPlayer = (
 ): any => {
   return {
     ...players,
-    [playerId]: { playerId: playerId, name: name, connection: connection },
+    [playerId]: {
+      playerId: playerId,
+      name: name,
+      connection: connection,
+      time: DEFAULT_TIME,
+    },
   };
 };
 
