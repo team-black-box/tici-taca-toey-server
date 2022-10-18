@@ -20,15 +20,16 @@ const EMPTY_POSITION = "-";
 const DEFAULT_TIME = 30;
 
 function timer(player: Player, flag: boolean) {
-  const intervalID = setInterval(() => {
+  const intervalId = setInterval(() => {
     player.time = player.time - 1;
     // notify the client of the updated times
     if (player.time === 0 || flag) {
-      clearInterval(intervalID);
-      // ran out of time, other player should be declared winner
+      clearInterval(intervalId);
+
       if (!flag) {
-        // time out
+        // ran out of time, other player should be declared winner
         console.log("Time Out");
+        return false;
       }
     }
   }, 1000);
