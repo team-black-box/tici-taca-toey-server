@@ -22,17 +22,15 @@ const DEFAULT_TIME = 30;
 function timer(player: Player, pauseTimer: boolean) {
   const intervalId = setInterval(() => {
     // notify the client of the updated times
-    if (player.time === 0 || pauseTimer) {
+    console.log(player.playerId + " " + player.time);
+    if (pauseTimer) {
       clearInterval(intervalId);
-
-      player.time = player.time - 1;
-
-      if (!pauseTimer) {
-        // ran out of time, other player should be declared winner
-        console.log("Time Out");
-        return false;
-      }
     }
+    if (player.time === 0) {
+      clearInterval(intervalId);
+      console.log("Time Out");
+    }
+    player.time = player.time - 1;
   }, 1000);
 }
 
@@ -302,11 +300,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.MAKE_MOVE: {
+        timer(this.players[message.playerId], true);
         const game = this.games[message.gameId];
         const nextPlayer = calculateNextTurn(
           game.players,
           game.turn,
-          game.playerCount
+          game.playerCount,
+          this.players
         );
         const positions = [...this.games[game.gameId].positions];
         positions[message.coordinateX][message.coordinateY] = message.playerId;
@@ -350,7 +350,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             },
           };
         }
-        timer(this.players[message.playerId], true); // stopping timer of the player who made the move and starting the timer of the next player
+        // stopping timer of the player who made the move and starting the timer of the next player
         timer(this.players[nextPlayer], false);
         break;
       }
@@ -468,6 +468,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
   notifyError(error) {
     const player: ConnectedPlayer = this.players[error.message.playerId];
+    console.log(error.message);
     const { ["connection"]: omit, ...message } = error.message;
     player.connection.send(
       JSON.stringify({ ...error, message, type: "ERROR" })
@@ -497,10 +498,16 @@ const addPlayer = (
 const calculateNextTurn = (
   players: string[],
   currentTurn: string,
-  playerCount: number
+  playerCount: number,
+  PlayersObj: any
 ): string => {
   // need to find next player who's time is not zero
-  const nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
+  let nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
+  // console.log(PlayersObj);
+
+  while (PlayersObj[players[nextPlayerIndex]].time === 0) {
+    nextPlayerIndex += 1 % playerCount;
+  }
   return players[nextPlayerIndex];
 };
 
