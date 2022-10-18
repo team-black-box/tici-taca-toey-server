@@ -26,7 +26,6 @@ function timer(player: Player, flag: boolean) {
     if (player.time === 0 || flag) {
       clearInterval(intervalID);
       // ran out of time, other player should be declared winner
-
       if (!flag) {
         // time out
         console.log("Time Out");
@@ -147,6 +146,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ) {
             reject({ error: ErrorCodes.GAME_ALREADY_IN_PROGRESS, message });
           }
+          // start the timer of the first player
           break;
         }
         case MessageTypes.MAKE_MOVE: {
