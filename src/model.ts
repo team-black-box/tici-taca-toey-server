@@ -1,5 +1,63 @@
 import WebSocket = require("ws");
 
+class Timer {
+  isRunning;
+  startTime;
+  timeLeft;
+  intervalID;
+
+  constructor(allotedTime: number) {
+    this.isRunning = false;
+    this.startTime = 0;
+    this.timeLeft = allotedTime;
+  }
+
+  _getTimeElapsedSinceLastStart() {
+    if (!this.startTime) {
+      return 0;
+    }
+
+    return Date.now() - this.startTime;
+  }
+
+  start() {
+    if (this.isRunning) {
+      return console.error("Timer is already running");
+    }
+    this.isRunning = true;
+    this.startTime = Date.now();
+
+    this.intervalID = setInterval(() => {
+      this.timeLeft = this.timeLeft - this._getTimeElapsedSinceLastStart();
+      this.startTime = Date.now();
+      console.log(this.timeLeft);
+      if (this.timeLeft <= 0) {
+        console.log("Time out");
+      }
+    }, 1);
+  }
+
+  stop() {
+    if (!this.isRunning) {
+      return console.error("Timer is already stopped");
+    }
+    this.timeLeft = this.timeLeft - this._getTimeElapsedSinceLastStart();
+    this.isRunning = false;
+    clearInterval(this.intervalID);
+  }
+
+  reset() {
+    this.timeLeft = 0;
+
+    if (this.isRunning) {
+      this.startTime = Date.now();
+      return;
+    }
+
+    this.startTime = 0;
+  }
+}
+
 interface Game {
   gameId: string;
   name: string;
@@ -13,12 +71,12 @@ interface Game {
   winningSequenceLength: number;
   status: GameStatus;
   turn: string;
+  timers: Record<string, Timer>;
 }
 
 interface Player {
   name: string;
   playerId: string;
-  timer: any;
 }
 
 interface ConnectedPlayer extends Player {
@@ -71,7 +129,6 @@ interface RegisterPlayerMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  timer: any;
 }
 
 interface RegisterRobotMessage {
@@ -81,7 +138,6 @@ interface RegisterRobotMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  timer: any;
 }
 
 interface StartGameMessage {
@@ -246,4 +302,5 @@ export {
   CalculateWinnerInputType,
   WinningSequence,
   CalculateWinnerOutputType,
+  Timer,
 };
