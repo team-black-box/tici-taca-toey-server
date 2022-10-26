@@ -18,7 +18,7 @@ import WebSocket = require("ws");
 import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
-const DEFAULT_ALLOTED_TIME = 20000; // 20 seconds
+let timePerPlayer = 20000;
 let firstPlayer;
 
 function getBase(game) {
@@ -223,8 +223,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
         }
+        if (message.allotedTime) timePerPlayer = message.allotedTime;
+
         const timers: Record<string, Timer> = {
-          [message.playerId]: new Timer(DEFAULT_ALLOTED_TIME),
+          [message.playerId]: new Timer(timePerPlayer),
         };
         firstPlayer = message.playerId;
         const game = {
@@ -257,7 +259,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
           this.games[gameId].timers[message.playerId] = new Timer(
-            DEFAULT_ALLOTED_TIME
+            timePerPlayer
           );
         }
         const updatedPlayersList = uniq([

@@ -154,6 +154,7 @@ interface StartGameMessage {
   connection?: WebSocket;
   playerId?: string;
   gameId?: string;
+  allotedTime?: number;
 }
 
 interface JoinGameMessage {
