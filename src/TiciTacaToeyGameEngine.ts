@@ -377,7 +377,19 @@ class TiciTacaToeyGameEngine implements GameEngine {
             const response: Response = {
               // todo: extract as generic method
               type: message.type,
-              game,
+              game: { 
+                  ...game, 
+                  timers: Object.keys(game.timers).reduce( // todo: inside Timer class
+                    (acc, playerId) => {
+                      acc[playerId]: TimerBase = {
+                        isRunning: game.timers[playerId].isRunning,
+                        timeLeft: game.timers[playerId].timeLeft
+                      }
+                      return acc;
+                    }, 
+                    {} // starting value of reduce i.e. empty object
+                  ) 
+              },
               players: connectedPlayers
                 .map((each) => ({ name: each.name, playerId: each.playerId }))
                 .reduce((acc, each) => {
