@@ -18,7 +18,7 @@ import WebSocket = require("ws");
 import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
-const DEFAULT_ALLOTED_TIME = 5000;
+const DEFAULT_ALLOTED_TIME = 20000;
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
   players;
@@ -377,18 +377,18 @@ class TiciTacaToeyGameEngine implements GameEngine {
             const response: Response = {
               // todo: extract as generic method
               type: message.type,
-              game: { 
-                  ...game, 
-                  timers: Object.keys(game.timers).reduce( // todo: inside Timer class
-                    (acc, playerId) => {
-                      acc[playerId]: TimerBase = {
-                        isRunning: game.timers[playerId].isRunning,
-                        timeLeft: game.timers[playerId].timeLeft
-                      }
-                      return acc;
-                    }, 
-                    {} // starting value of reduce i.e. empty object
-                  ) 
+              game: {
+                ...game,
+                timers: Object.keys(game.timers).reduce(
+                  (acc, playerId) => {
+                    acc[playerId] = {
+                      isRunning: game.timers[playerId].isRunning,
+                      timeLeft: game.timers[playerId].timeLeft,
+                    };
+                    return acc;
+                  },
+                  {} // starting value of reduce i.e. empty object
+                ),
               },
               players: connectedPlayers
                 .map((each) => ({ name: each.name, playerId: each.playerId }))
@@ -455,7 +455,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
             JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
           );
         });
-        // notify the client of the changes in timings
         break;
       }
       default:
@@ -496,7 +495,6 @@ const calculateNextTurn = (
   currentTurn: string,
   playerCount: number
 ): string => {
-  // need to find next player who's time is not zero
   const nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
   return players[nextPlayerIndex];
 };

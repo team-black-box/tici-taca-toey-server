@@ -6,60 +6,70 @@ interface TimerBase {
 }
 
 class Timer implements TimerBase {
-  isRunning;
-  #startTime;
-  timeLeft;
+  isRunning: boolean;
+  #startTime: number;
+  timeLeft: number;
   #intervalID;
 
   constructor(allotedTime: number) {
     this.isRunning = false;
-    this.startTime = 0;
+    this.#startTime = 0;
     this.timeLeft = allotedTime;
   }
 
   #getTimeElapsedSinceLastStart() {
-    if (!this.startTime) {
+    if (!this.#startTime) {
       return 0;
     }
 
-    return Date.now() - this.startTime;
+    return Date.now() - this.#startTime;
   }
-
+  #getBase(game) {
+    const base = Object.keys(game.timers).reduce((acc, playerId) => {
+      acc[playerId] = {
+        isRunning: game.timers[playerId].isRunning,
+        timeLeft: game.timers[playerId].timeLeft,
+      };
+      return acc;
+    }, {});
+    return base;
+  }
   start() {
     if (this.isRunning) {
       return console.error("Timer is already running");
     }
     this.isRunning = true;
-    this.startTime = Date.now();
+    this.#startTime = Date.now();
 
-    this.intervalID = setInterval(() => {
-      this.timeLeft = this.timeLeft - this._getTimeElapsedSinceLastStart();
-      this.startTime = Date.now();
+    this.#intervalID = setInterval(() => {
+      this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
+      this.#startTime = Date.now();
       console.log(this.timeLeft);
       if (this.timeLeft <= 0) {
         console.log("Time out");
+        this.stop();
       }
-    }, 1);
+    }, 250);
   }
 
   stop() {
     if (!this.isRunning) {
       return console.error("Timer is already stopped");
     }
-    this.timeLeft = this.timeLeft - this._getTimeElapsedSinceLastStart();
+    this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
     this.isRunning = false;
-    clearInterval(this.intervalID);
+    clearInterval(this.#intervalID);
   }
 
   reset() {
     this.timeLeft = 0;
 
     if (this.isRunning) {
-      this.startTime = Date.now();
+      this.#startTime = Date.now();
       return;
     }
 
-    this.startTime = 0;
+    this.#startTime = 0;
   }
 }
 
