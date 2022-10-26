@@ -26,7 +26,7 @@ class Timer implements TimerBase {
   }
   start() {
     if (this.isRunning) {
-      return console.error("Timer is already running");
+      throw "Timer is already running";
     }
     this.isRunning = true;
     this.#startTime = Date.now();
@@ -36,15 +36,15 @@ class Timer implements TimerBase {
       this.#startTime = Date.now();
       console.log(this.timeLeft);
       if (this.timeLeft <= 0) {
-        console.log("Time out");
         this.stop();
+        throw "Player Timed Out";
       }
     }, 250);
   }
 
   stop() {
     if (!this.isRunning) {
-      return console.error("Timer is already stopped");
+      throw "Timer is already stopped";
     }
     this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
     this.isRunning = false;

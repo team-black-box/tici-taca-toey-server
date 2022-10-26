@@ -19,6 +19,7 @@ import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
 const DEFAULT_ALLOTED_TIME = 20000; // 20 seconds
+let firstPlayer;
 
 function getBase(game) {
   const base = Object.keys(game.timers).reduce((acc, playerId) => {
@@ -225,6 +226,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
         const timers: Record<string, Timer> = {
           [message.playerId]: new Timer(DEFAULT_ALLOTED_TIME),
         };
+        firstPlayer = message.playerId;
         const game = {
           gameId: message.gameId,
           name: message.name,
@@ -265,6 +267,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
         const gameReadyToStart =
           updatedPlayersList.length === this.games[gameId].playerCount;
+
+        if (gameReadyToStart) {
+          this.games[gameId].timers[firstPlayer].start();
+        }
 
         const game = {
           ...this.games[gameId],
@@ -435,7 +441,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
           )
             ? MessageTypes.GAME_COMPLETE
             : message.type,
-          game,
+          game: {
+            ...game,
+            timers: getBase(game),
+          },
           players: connectedPlayers
             .map((each) => ({ name: each.name, playerId: each.playerId }))
             .reduce((acc, each) => {
