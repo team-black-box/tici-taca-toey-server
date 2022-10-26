@@ -1,10 +1,15 @@
 import WebSocket = require("ws");
 
-class Timer {
+interface TimerBase {
+  isRunning: boolean;
+  timeLeft: number;
+}
+
+class Timer implements TimerBase {
   isRunning;
-  startTime;
+  #startTime;
   timeLeft;
-  intervalID;
+  #intervalID;
 
   constructor(allotedTime: number) {
     this.isRunning = false;
@@ -12,7 +17,7 @@ class Timer {
     this.timeLeft = allotedTime;
   }
 
-  _getTimeElapsedSinceLastStart() {
+  #getTimeElapsedSinceLastStart() {
     if (!this.startTime) {
       return 0;
     }
@@ -71,7 +76,7 @@ interface Game {
   winningSequenceLength: number;
   status: GameStatus;
   turn: string;
-  timers: Record<string, Timer>;
+  timers: Record<string, TimerBase>;
 }
 
 interface Player {
