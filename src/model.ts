@@ -24,16 +24,6 @@ class Timer implements TimerBase {
 
     return Date.now() - this.#startTime;
   }
-  #getBase(game) {
-    const base = Object.keys(game.timers).reduce((acc, playerId) => {
-      acc[playerId] = {
-        isRunning: game.timers[playerId].isRunning,
-        timeLeft: game.timers[playerId].timeLeft,
-      };
-      return acc;
-    }, {});
-    return base;
-  }
   start() {
     if (this.isRunning) {
       return console.error("Timer is already running");

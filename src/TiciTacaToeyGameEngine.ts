@@ -18,7 +18,18 @@ import WebSocket = require("ws");
 import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
-const DEFAULT_ALLOTED_TIME = 20000;
+const DEFAULT_ALLOTED_TIME = 20000; // 20 seconds
+
+function getBase(game) {
+  const base = Object.keys(game.timers).reduce((acc, playerId) => {
+    acc[playerId] = {
+      isRunning: game.timers[playerId].isRunning,
+      timeLeft: game.timers[playerId].timeLeft,
+    };
+    return acc;
+  }, {});
+  return base;
+}
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
   players;
@@ -379,16 +390,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
               type: message.type,
               game: {
                 ...game,
-                timers: Object.keys(game.timers).reduce(
-                  (acc, playerId) => {
-                    acc[playerId] = {
-                      isRunning: game.timers[playerId].isRunning,
-                      timeLeft: game.timers[playerId].timeLeft,
-                    };
-                    return acc;
-                  },
-                  {} // starting value of reduce i.e. empty object
-                ),
+                timers: getBase(game),
               },
               players: connectedPlayers
                 .map((each) => ({ name: each.name, playerId: each.playerId }))
