@@ -18,7 +18,7 @@ import WebSocket = require("ws");
 import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
-let timePerPlayer = 20000;
+let timePerPlayer = 5000;
 let firstPlayer;
 
 function getBase(game) {
@@ -394,7 +394,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
               .filter((each) => game.spectators.includes(each))
               .map((each) => this.players[each]);
             const response: Response = {
-              // todo: extract as generic method
               type: message.type,
               game: {
                 ...game,
