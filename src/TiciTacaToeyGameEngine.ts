@@ -31,7 +31,7 @@ function getTimerBaseFromGame(game) {
   return base;
 }
 
-function getFirstPlayer(game) {
+function getFirstPlayerFromGame(game) {
   return game.players[0];
 }
 
@@ -272,7 +272,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
           updatedPlayersList.length === this.games[gameId].playerCount;
 
         if (gameReadyToStart) {
-          this.games[gameId].timers[getFirstPlayer(this.games[gameId])].start();
+          this.games[gameId].timers[
+            getFirstPlayerFromGame(this.games[gameId])
+          ].start();
         }
 
         const game = {
@@ -283,7 +285,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             : GameStatus.WAITING_FOR_PLAYERS,
           // turn: gameReadyToStart ? this.games[gameId].players[0] : undefined, // finding first player
           turn: gameReadyToStart
-            ? getFirstPlayer(this.games[gameId])
+            ? getFirstPlayerFromGame(this.games[gameId])
             : undefined,
           // add new timer here
           timers: {
