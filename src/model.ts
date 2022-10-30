@@ -12,21 +12,15 @@ class Timer implements TimerBase {
   #intervalID;
 
   constructor(allotedTime: number) {
-    this.isRunning = false;
-    this.#startTime = 0;
-    this.timeLeft = allotedTime;
+    this.reset(allotedTime);
   }
 
   #getTimeElapsedSinceLastStart() {
-    if (!this.#startTime) {
-      return 0;
-    }
-
-    return Date.now() - this.#startTime;
+    return this.#startTime === 0 ? 0 : Date.now() - this.#startTime;
   }
   start() {
     if (this.isRunning) {
-      throw "Timer is already running";
+      return "Timer is already running";
     }
     this.isRunning = true;
     this.#startTime = Date.now();
@@ -37,29 +31,29 @@ class Timer implements TimerBase {
       console.log(this.timeLeft);
       if (this.timeLeft <= 0) {
         this.stop();
-        throw "Player Timed Out";
+        return "Player Timed Out";
       }
     }, 250);
   }
 
   stop() {
     if (!this.isRunning) {
-      throw "Timer is already stopped";
+      return "Timer is already stopped";
     }
     this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
     this.isRunning = false;
     clearInterval(this.#intervalID);
   }
 
-  reset() {
-    this.timeLeft = 0;
+  reset(allotedTime) {
+    this.isRunning = false;
+    this.#startTime = 0;
+    this.timeLeft = allotedTime;
 
     if (this.isRunning) {
       this.#startTime = Date.now();
       return;
     }
-
-    this.#startTime = 0;
   }
 }
 
@@ -77,6 +71,7 @@ interface Game {
   status: GameStatus;
   turn: string;
   timers: Record<string, TimerBase>;
+  timePerPlayer: number;
 }
 
 interface Player {

@@ -18,10 +18,9 @@ import WebSocket = require("ws");
 import uniq from "lodash.uniq";
 
 const EMPTY_POSITION = "-";
-let timePerPlayer = 5000;
-let firstPlayer;
+const DEFAULT_TIME_PER_PLAYER = 5000;
 
-function getBase(game) {
+function getTimerBaseFromGame(game) {
   const base = Object.keys(game.timers).reduce((acc, playerId) => {
     acc[playerId] = {
       isRunning: game.timers[playerId].isRunning,
@@ -31,6 +30,11 @@ function getBase(game) {
   }, {});
   return base;
 }
+
+function getFirstPlayer(game) {
+  return game.players[0];
+}
+
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
   players;
@@ -223,12 +227,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
         }
-        if (message.allotedTime) timePerPlayer = message.allotedTime;
+        const timePerPlayer = message.allotedTime ?? DEFAULT_TIME_PER_PLAYER;
 
         const timers: Record<string, Timer> = {
           [message.playerId]: new Timer(timePerPlayer),
         };
-        firstPlayer = message.playerId;
         const game = {
           gameId: message.gameId,
           name: message.name,
@@ -242,6 +245,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
           timers: timers,
+          timePerPlayer: timePerPlayer,
         };
         this.games = {
           ...this.games,
@@ -258,20 +262,17 @@ class TiciTacaToeyGameEngine implements GameEngine {
             "",
             message.connection
           );
-          this.games[gameId].timers[message.playerId] = new Timer(
-            timePerPlayer
-          );
         }
         const updatedPlayersList = uniq([
           ...this.games[gameId].players,
           message.playerId,
         ]);
-
+        const timePerPlayer = this.games[gameId].timePerPlayer;
         const gameReadyToStart =
           updatedPlayersList.length === this.games[gameId].playerCount;
 
         if (gameReadyToStart) {
-          this.games[gameId].timers[firstPlayer].start();
+          this.games[gameId].timers[getFirstPlayer(this.games[gameId])].start();
         }
 
         const game = {
@@ -280,7 +281,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
           status: gameReadyToStart
             ? GameStatus.GAME_IN_PROGRESS
             : GameStatus.WAITING_FOR_PLAYERS,
-          turn: gameReadyToStart ? this.games[gameId].players[0] : undefined,
+          // turn: gameReadyToStart ? this.games[gameId].players[0] : undefined, // finding first player
+          turn: gameReadyToStart
+            ? getFirstPlayer(this.games[gameId])
+            : undefined,
+          // add new timer here
+          timers: {
+            ...this.games[gameId].timers,
+            [message.playerId]: new Timer(timePerPlayer),
+          },
         };
         this.games = {
           ...this.games,
@@ -397,7 +406,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
               type: message.type,
               game: {
                 ...game,
-                timers: getBase(game),
+                timers: getTimerBaseFromGame(game),
               },
               players: connectedPlayers
                 .map((each) => ({ name: each.name, playerId: each.playerId }))
@@ -444,7 +453,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             : message.type,
           game: {
             ...game,
-            timers: getBase(game),
+            timers: getTimerBaseFromGame(game),
           },
           players: connectedPlayers
             .map((each) => ({ name: each.name, playerId: each.playerId }))
