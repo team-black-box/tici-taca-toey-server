@@ -227,10 +227,14 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
         }
-        const timePerPlayer = message.allotedTime ?? DEFAULT_TIME_PER_PLAYER;
+        const timePerPlayer = message.timePerPlayer ?? DEFAULT_TIME_PER_PLAYER;
 
         const timers: Record<string, Timer> = {
-          [message.playerId]: new Timer(timePerPlayer),
+          [message.playerId]: new Timer(
+            timePerPlayer,
+            message.playerId,
+            message.gameId
+          ),
         };
         const game = {
           gameId: message.gameId,
@@ -271,32 +275,33 @@ class TiciTacaToeyGameEngine implements GameEngine {
         const gameReadyToStart =
           updatedPlayersList.length === this.games[gameId].playerCount;
 
-        if (gameReadyToStart) {
-          this.games[gameId].timers[
-            getFirstPlayerFromGame(this.games[gameId])
-          ].start();
-        }
-
         const game = {
           ...this.games[gameId],
           players: [...updatedPlayersList],
           status: gameReadyToStart
             ? GameStatus.GAME_IN_PROGRESS
             : GameStatus.WAITING_FOR_PLAYERS,
-          // turn: gameReadyToStart ? this.games[gameId].players[0] : undefined, // finding first player
           turn: gameReadyToStart
             ? getFirstPlayerFromGame(this.games[gameId])
             : undefined,
-          // add new timer here
           timers: {
             ...this.games[gameId].timers,
-            [message.playerId]: new Timer(timePerPlayer),
+            [message.playerId]: new Timer(
+              timePerPlayer,
+              message.playerId,
+              message.gameId
+            ),
           },
         };
         this.games = {
           ...this.games,
           [message.gameId]: game,
         };
+        if (gameReadyToStart) {
+          this.games[gameId].timers[
+            getFirstPlayerFromGame(this.games[gameId])
+          ].start();
+        }
         break;
       }
       case MessageTypes.SPECTATE_GAME: {
@@ -366,8 +371,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
               status: GameStatus.GAME_ENDS_IN_A_DRAW,
             },
           };
+        } else {
+          game.timers[nextPlayer].start();
         }
-        game.timers[nextPlayer].start();
         break;
       }
     }

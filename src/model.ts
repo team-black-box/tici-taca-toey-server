@@ -3,6 +3,8 @@ import WebSocket = require("ws");
 interface TimerBase {
   isRunning: boolean;
   timeLeft: number;
+  playerId: number;
+  gameId: number;
 }
 
 class Timer implements TimerBase {
@@ -10,18 +12,26 @@ class Timer implements TimerBase {
   #startTime: number;
   timeLeft: number;
   #intervalID;
+  playerId: number;
+  gameId: number;
 
-  constructor(allotedTime: number) {
-    this.reset(allotedTime);
+  constructor(allotedTime: number, playerId, gameId) {
+    this.reset(allotedTime, playerId, gameId);
   }
 
   #getTimeElapsedSinceLastStart() {
     return this.#startTime === 0 ? 0 : Date.now() - this.#startTime;
   }
+
   start() {
     if (this.isRunning) {
       return "Timer is already running";
     }
+
+    // if (this.timeLeft <= 0) {
+    //   // timed out so can't make a move
+    // }
+
     this.isRunning = true;
     this.#startTime = Date.now();
 
@@ -31,7 +41,9 @@ class Timer implements TimerBase {
       console.log(this.timeLeft);
       if (this.timeLeft <= 0) {
         this.stop();
-        return "Player Timed Out";
+        // Player Timed Out
+        return "Time Out";
+        // return new Promise<PlayerTimeoutMessage>((resolve, reject) => {});
       }
     }, 250);
   }
@@ -45,10 +57,12 @@ class Timer implements TimerBase {
     clearInterval(this.#intervalID);
   }
 
-  reset(allotedTime) {
+  reset(allotedTime, playerId, gameId) {
     this.isRunning = false;
     this.#startTime = 0;
     this.timeLeft = allotedTime;
+    this.playerId = playerId;
+    this.gameId = gameId;
 
     if (this.isRunning) {
       this.#startTime = Date.now();
@@ -149,7 +163,7 @@ interface StartGameMessage {
   connection?: WebSocket;
   playerId?: string;
   gameId?: string;
-  allotedTime?: number;
+  timePerPlayer?: number;
 }
 
 interface JoinGameMessage {
@@ -182,6 +196,13 @@ interface PlayerDisconnectMessage {
   connection?: WebSocket; // todo: this is really not required :(
 }
 
+interface PlayerTimeoutMessage {
+  type: MessageTypes.PLAYER_TIMEOUT;
+  playerId: string;
+  gameId: string;
+  connection?: WebSocket;
+}
+
 type Message =
   | RegisterPlayerMessage
   | RegisterRobotMessage
@@ -189,7 +210,8 @@ type Message =
   | JoinGameMessage
   | SpectateGameMessage
   | MakeMoveMessage
-  | PlayerDisconnectMessage;
+  | PlayerDisconnectMessage
+  | PlayerTimeoutMessage;
 
 // Responses
 
@@ -230,6 +252,7 @@ enum MessageTypes {
   SPECTATE_GAME = "SPECTATE_GAME",
   GAME_COMPLETE = "GAME_COMPLETE", // response only
   PLAYER_DISCONNECT = "PLAYER_DISCONNECT",
+  PLAYER_TIMEOUT = "PLAYER_TIMEOUT",
 }
 
 enum ErrorCodes {
@@ -246,7 +269,7 @@ enum ErrorCodes {
   BOARD_SIZE_CANNOT_BE_GREATER_THAN_12 = "BOARD_SIZE_CANNOT_BE_GREATER_THAN_12",
   PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10 = "PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10",
   SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10 = "SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10",
-  TIME_OUT = "TIME OUT",
+  PLAYER_TIME_OUT = "PLAYER_TIME_OUT",
 }
 
 enum GameStatus {
@@ -304,4 +327,5 @@ export {
   WinningSequence,
   CalculateWinnerOutputType,
   Timer,
+  PlayerTimeoutMessage,
 };
