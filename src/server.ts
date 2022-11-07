@@ -53,7 +53,7 @@ if (serverArgs.length !== 3) {
   server.listen(serverArgs[2]);
 }
 
-const engine = new TiciTacaToeyGameEngine();
+export const engine = new TiciTacaToeyGameEngine();
 
 log(engine);
 

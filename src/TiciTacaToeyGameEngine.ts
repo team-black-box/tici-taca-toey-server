@@ -165,6 +165,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ) {
             reject({ error: ErrorCodes.INVALID_MOVE, message });
           }
+          if (this.games[message.gameId].timers[message.playerId] <= 0) {
+            reject({ error: ErrorCodes.PLAYER_TIME_OUT, message });
+          }
           break;
         }
         default:
@@ -233,7 +236,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
           [message.playerId]: new Timer(
             timePerPlayer,
             message.playerId,
-            message.gameId
+            message.gameId,
+            message
           ),
         };
         const game = {
@@ -289,7 +293,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
             [message.playerId]: new Timer(
               timePerPlayer,
               message.playerId,
-              message.gameId
+              message.gameId,
+              message
             ),
           },
         };
@@ -319,17 +324,27 @@ class TiciTacaToeyGameEngine implements GameEngine {
         };
         break;
       }
+      case MessageTypes.PLAYER_TIMEOUT: {
+        const game = this.games[message.gameId];
+
+        const nextPlayer = calculateNextTurn(game);
+        this.games = {
+          ...this.games,
+          [game.gameId]: {
+            ...game,
+            turn: nextPlayer,
+          },
+        };
+        // todo: will need to check if the other players have timed out, if yes then the only player remaining with time is the winner
+        break;
+      }
       case MessageTypes.MAKE_MOVE: {
-        // stopping timer of the player who made the move
         const game = this.games[message.gameId];
 
         game.timers[message.playerId].stop();
 
-        const nextPlayer = calculateNextTurn(
-          game.players,
-          game.turn,
-          game.playerCount
-        );
+        const nextPlayer = calculateNextTurn(game);
+
         const positions = [...this.games[game.gameId].positions];
         positions[message.coordinateX][message.coordinateY] = message.playerId;
         this.games = {
@@ -340,6 +355,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             turn: nextPlayer,
           },
         };
+
         const winner = calculateWinnerV2({
           positions: game.positions,
           winningSequenceLength: game.winningSequenceLength,
@@ -445,6 +461,47 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.START_GAME:
       case MessageTypes.JOIN_GAME:
       case MessageTypes.SPECTATE_GAME:
+      case MessageTypes.UPDATE_TIME: {
+        const game = this.games[message.gameId];
+
+        const connectedPlayers: ConnectedPlayer[] = Object.keys(this.players)
+          .filter((each) => game.players.includes(each))
+          .map((each) => this.players[each]);
+
+        const connectedSpectators: ConnectedPlayer[] = Object.keys(this.players)
+          .filter((each) => game.spectators.includes(each))
+          .map((each) => this.players[each]);
+
+        const response: Response = {
+          type: MessageTypes.UPDATE_TIME,
+          game: {
+            ...game,
+            timers: getTimerBaseFromGame(game),
+          },
+          players: connectedPlayers
+            .map((each) => ({ name: each.name, playerId: each.playerId }))
+            .reduce((acc, each) => {
+              acc[each.playerId] = each;
+              return acc;
+            }, {}),
+          spectators: connectedSpectators
+            .map((each) => ({ name: each.name, playerId: each.playerId }))
+            .reduce((acc, each) => {
+              acc[each.playerId] = each;
+              return acc;
+            }, {}),
+        };
+        connectedPlayers.forEach((player) => {
+          player.connection.send(JSON.stringify(response));
+        });
+        connectedSpectators.forEach((player) => {
+          player.connection.send(
+            JSON.stringify({ ...response, type: MessageTypes.UPDATE_TIME })
+          );
+        });
+        break;
+      }
+
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
         const connectedPlayers: ConnectedPlayer[] = Object.keys(this.players)
@@ -519,13 +576,12 @@ const addPlayer = (
   };
 };
 
-const calculateNextTurn = (
-  players: string[],
-  currentTurn: string,
-  playerCount: number
-): string => {
-  const nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
-  return players[nextPlayerIndex];
+const calculateNextTurn = (game: Game): string => {
+  const nextPlayerIndex =
+    (game.players.indexOf(game.turn) + 1) % game.playerCount;
+  return game.timers[game.players[nextPlayerIndex]].timeLeft <= 0
+    ? calculateNextTurn(game)
+    : game.players[nextPlayerIndex];
 };
 
 const generateBoard = (boardSize: number): string[][] => {
