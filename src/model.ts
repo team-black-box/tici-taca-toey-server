@@ -45,7 +45,6 @@ class Timer implements TimerBase {
         this.stop();
         engine.play(playerTimeoutMessage);
       }
-      console.log(this.timeLeft);
       const timeUpdateMessage: UpdateTimeMessage = {
         type: MessageTypes.NOTIFY_TIME,
         gameId: this.#gameId,
