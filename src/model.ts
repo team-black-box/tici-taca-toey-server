@@ -4,8 +4,6 @@ import { engine } from "./server";
 interface TimerBase {
   isRunning: boolean;
   timeLeft: number;
-  playerId: string;
-  gameId: number;
 }
 
 class Timer implements TimerBase {
@@ -13,12 +11,13 @@ class Timer implements TimerBase {
   #startTime: number;
   timeLeft: number;
   #intervalID;
-  playerId: string;
-  gameId: number;
-  #message: Message;
+  #playerId: string;
+  #gameId: string;
 
-  constructor(allotedTime: number, playerId, gameId, message) {
-    this.reset(allotedTime, playerId, gameId, message);
+  constructor(allotedTime: number, playerId, gameId) {
+    this.#playerId = playerId;
+    this.#gameId = gameId;
+    this.reset(allotedTime);
   }
 
   #getTimeElapsedSinceLastStart() {
@@ -32,9 +31,8 @@ class Timer implements TimerBase {
 
     const playerTimeoutMessage: PlayerTimeoutMessage = {
       type: MessageTypes.PLAYER_TIMEOUT,
-      gameId: this.#message.gameId,
-      connection: this.#message.connection,
-      playerId: this.playerId,
+      gameId: this.#gameId,
+      playerId: this.#playerId,
     };
 
     this.isRunning = true;
@@ -43,41 +41,32 @@ class Timer implements TimerBase {
     this.#intervalID = setInterval(() => {
       this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
       this.#startTime = Date.now();
-      // console.log(this.timeLeft);
       if (this.timeLeft <= 0) {
         this.stop();
-        engine.transition(playerTimeoutMessage);
-        engine.notify(playerTimeoutMessage);
-        return "Time Out";
+        engine.play(playerTimeoutMessage);
       }
-
+      console.log(this.timeLeft);
       const timeUpdateMessage: UpdateTimeMessage = {
-        type: MessageTypes.UPDATE_TIME,
-        gameId: this.#message.gameId,
-        connection: this.#message.connection,
-        playerId: this.playerId,
+        type: MessageTypes.NOTIFY_TIME,
+        gameId: this.#gameId,
       };
-      engine.notify(timeUpdateMessage); // notifying the client every 100 ms
+      engine.play(timeUpdateMessage); // notifying the client every 100 ms
     }, 100);
   }
 
   stop() {
     if (!this.isRunning) {
-      return "Timer is already stopped";
+      return;
     }
     this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
     this.isRunning = false;
     clearInterval(this.#intervalID);
   }
 
-  reset(allotedTime, playerId, gameId, message) {
+  reset(allotedTime: number) {
     this.isRunning = false;
     this.#startTime = 0;
     this.timeLeft = allotedTime;
-    this.playerId = playerId;
-    this.gameId = gameId;
-    this.#message = message;
-
     if (this.isRunning) {
       this.#startTime = Date.now();
       return;
@@ -188,7 +177,7 @@ interface JoinGameMessage {
 }
 
 interface UpdateTimeMessage {
-  type: MessageTypes.UPDATE_TIME;
+  type: MessageTypes.NOTIFY_TIME;
   gameId: string;
   connection?: WebSocket;
   playerId?: string;
@@ -253,7 +242,7 @@ interface GameActionResponse extends GameState {
     | MessageTypes.SPECTATE_GAME
     | MessageTypes.PLAYER_DISCONNECT
     | MessageTypes.GAME_COMPLETE
-    | MessageTypes.UPDATE_TIME;
+    | MessageTypes.NOTIFY_TIME;
 }
 
 type Response =
@@ -276,7 +265,7 @@ enum MessageTypes {
   GAME_COMPLETE = "GAME_COMPLETE", // response only
   PLAYER_DISCONNECT = "PLAYER_DISCONNECT",
   PLAYER_TIMEOUT = "PLAYER_TIMEOUT",
-  UPDATE_TIME = "UPDATE_TIME",
+  NOTIFY_TIME = "NOTIFY_TIME",
 }
 
 enum ErrorCodes {

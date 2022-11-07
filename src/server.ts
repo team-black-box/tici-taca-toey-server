@@ -10,7 +10,6 @@ import {
   GameStatus,
   MessageTypes,
   PlayerDisconnectMessage,
-  PlayerTimeoutMessage,
 } from "./model";
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 
