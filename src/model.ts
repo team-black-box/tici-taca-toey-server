@@ -42,8 +42,8 @@ class Timer implements TimerBase {
       this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
       this.#startTime = Date.now();
       if (this.timeLeft <= 0) {
-        this.stop();
         engine.play(playerTimeoutMessage);
+        this.stop();
       }
       const timeUpdateMessage: UpdateTimeMessage = {
         type: MessageTypes.NOTIFY_TIME,
@@ -241,7 +241,8 @@ interface GameActionResponse extends GameState {
     | MessageTypes.SPECTATE_GAME
     | MessageTypes.PLAYER_DISCONNECT
     | MessageTypes.GAME_COMPLETE
-    | MessageTypes.NOTIFY_TIME;
+    | MessageTypes.NOTIFY_TIME
+    | MessageTypes.PLAYER_TIMEOUT;
 }
 
 type Response =

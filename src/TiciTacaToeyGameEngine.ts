@@ -85,6 +85,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
       switch (message.type) {
         case MessageTypes.REGISTER_PLAYER:
           break;
+        case MessageTypes.PLAYER_TIMEOUT:
+          break;
         case MessageTypes.REGISTER_ROBOT:
           break;
         case MessageTypes.PLAYER_DISCONNECT:
@@ -344,7 +346,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
       }
       case MessageTypes.PLAYER_TIMEOUT: {
         const game = this.games[message.gameId];
-
         const nextPlayer = calculateNextTurn(game);
         this.games = {
           ...this.games,
@@ -353,7 +354,25 @@ class TiciTacaToeyGameEngine implements GameEngine {
             turn: nextPlayer,
           },
         };
-        // todo: will need to check if the other players have timed out, if yes then the only player remaining with time is the winner
+
+        let count = 0;
+        let winner = "";
+        game.players.forEach((player) => {
+          if (game.timers[player].timeLeft >= 0) count++, (winner = player);
+        });
+
+        if (count == 1) {
+          console.log(winner);
+          this.games = {
+            ...this.games,
+            [message.gameId]: {
+              ...this.games[message.gameId],
+              status: GameStatus.GAME_WON,
+              winner: winner,
+              turn: "",
+            },
+          };
+        }
         break;
       }
       case MessageTypes.MAKE_MOVE: {
@@ -479,6 +498,50 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.START_GAME:
       case MessageTypes.JOIN_GAME:
       case MessageTypes.SPECTATE_GAME:
+      case MessageTypes.PLAYER_TIMEOUT: {
+        const game = this.games[message.gameId];
+        const connectedPlayers: ConnectedPlayer[] = getConnectedPlayers(
+          this.players,
+          game
+        );
+
+        const connectedSpectators: ConnectedPlayer[] = getConnectedSpectators(
+          this.players,
+          game
+        );
+        const response: Response = {
+          type: [GameStatus.GAME_WON, GameStatus.GAME_ENDS_IN_A_DRAW].includes(
+            game.status
+          )
+            ? MessageTypes.GAME_COMPLETE
+            : message.type,
+          game: {
+            ...game,
+            timers: getTimerBaseFromGame(game),
+          },
+          players: connectedPlayers
+            .map((each) => ({ name: each.name, playerId: each.playerId }))
+            .reduce((acc, each) => {
+              acc[each.playerId] = each;
+              return acc;
+            }, {}),
+          spectators: connectedSpectators
+            .map((each) => ({ name: each.name, playerId: each.playerId }))
+            .reduce((acc, each) => {
+              acc[each.playerId] = each;
+              return acc;
+            }, {}),
+        };
+        connectedPlayers.forEach((player) => {
+          player.connection.send(JSON.stringify(response));
+        });
+        connectedSpectators.forEach((player) => {
+          player.connection.send(
+            JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
+          );
+        });
+        break;
+      }
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
 
