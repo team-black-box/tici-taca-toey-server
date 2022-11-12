@@ -291,12 +291,14 @@ enum GameStatus {
   GAME_WON = "GAME_WON",
   GAME_ENDS_IN_A_DRAW = "GAME_ENDS_IN_A_DRAW",
   GAME_ABANDONED = "GAME_ABANDONED",
+  GAME_WON_BY_TIMEOUT = "GAME_WON_BY_TIMEOUT",
 }
 
 const COMPLETED_GAME_STATUS = [
   GameStatus.GAME_ABANDONED,
   GameStatus.GAME_ENDS_IN_A_DRAW,
   GameStatus.GAME_WON,
+  GameStatus.GAME_WON_BY_TIMEOUT,
 ];
 
 // Winner Calculation Enhancements

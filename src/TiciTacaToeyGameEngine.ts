@@ -46,6 +46,43 @@ function getConnectedSpectators(players, game) {
   return connectedSpectators;
 }
 
+function getPlayers(connectedPlayers: ConnectedPlayer[]) {
+  return connectedPlayers
+    .map((each) => ({ name: each.name, playerId: each.playerId }))
+    .reduce((acc, each) => {
+      acc[each.playerId] = each;
+      return acc;
+    }, {});
+}
+
+function getSpectators(connectedSpectators: ConnectedPlayer[]) {
+  return connectedSpectators
+    .map((each) => ({ name: each.name, playerId: each.playerId }))
+    .reduce((acc, each) => {
+      acc[each.playerId] = each;
+      return acc;
+    }, {});
+}
+
+function sendResponseToPlayers(
+  messageType: MessageTypes,
+  response: Response,
+  connectedPlayers: ConnectedPlayer[],
+  connectedSpectators: ConnectedPlayer[]
+) {
+  connectedPlayers.forEach((player) => {
+    player.connection.send(JSON.stringify(response));
+  });
+  connectedSpectators.forEach((player) => {
+    player.connection.send(
+      JSON.stringify({
+        ...response,
+        type: messageType,
+      })
+    );
+  });
+}
+
 function getFirstPlayerFromGame(game) {
   return game.players[0];
 }
@@ -367,7 +404,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ...this.games,
             [message.gameId]: {
               ...this.games[message.gameId],
-              status: GameStatus.GAME_WON,
+              status: GameStatus.GAME_WON_BY_TIMEOUT,
               winner: winner,
               turn: "",
             },
@@ -469,30 +506,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
                 ...game,
                 timers: getTimerBaseFromGame(game),
               },
-              players: connectedPlayers
-                .map((each) => ({ name: each.name, playerId: each.playerId }))
-                .reduce((acc, each) => {
-                  acc[each.playerId] = each;
-                  return acc;
-                }, {}),
-              spectators: connectedSpectators
-                .map((each) => ({ name: each.name, playerId: each.playerId }))
-                .reduce((acc, each) => {
-                  acc[each.playerId] = each;
-                  return acc;
-                }, {}),
+              players: getPlayers(connectedPlayers),
+              spectators: getSpectators(connectedSpectators),
             };
-            connectedPlayers.forEach((player) => {
-              player.connection.send(JSON.stringify(response));
-            });
-            connectedSpectators.forEach((player) => {
-              player.connection.send(
-                JSON.stringify({
-                  ...response,
-                  type: MessageTypes.SPECTATE_GAME,
-                })
-              );
-            });
+            sendResponseToPlayers(
+              MessageTypes.SPECTATE_GAME,
+              response,
+              connectedPlayers,
+              connectedSpectators
+            );
           });
         break;
       case MessageTypes.START_GAME:
@@ -510,36 +532,22 @@ class TiciTacaToeyGameEngine implements GameEngine {
           game
         );
         const response: Response = {
-          type: [GameStatus.GAME_WON, GameStatus.GAME_ENDS_IN_A_DRAW].includes(
-            game.status
-          )
+          type: [GameStatus.GAME_WON_BY_TIMEOUT].includes(game.status)
             ? MessageTypes.GAME_COMPLETE
             : message.type,
           game: {
             ...game,
             timers: getTimerBaseFromGame(game),
           },
-          players: connectedPlayers
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
-          spectators: connectedSpectators
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
+          players: getPlayers(connectedPlayers),
+          spectators: getSpectators(connectedSpectators),
         };
-        connectedPlayers.forEach((player) => {
-          player.connection.send(JSON.stringify(response));
-        });
-        connectedSpectators.forEach((player) => {
-          player.connection.send(
-            JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
-          );
-        });
+        sendResponseToPlayers(
+          MessageTypes.SPECTATE_GAME,
+          response,
+          connectedPlayers,
+          connectedSpectators
+        );
         break;
       }
       case MessageTypes.MAKE_MOVE: {
@@ -565,27 +573,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ...game,
             timers: getTimerBaseFromGame(game),
           },
-          players: connectedPlayers
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
-          spectators: connectedSpectators
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
+          players: getPlayers(connectedPlayers),
+          spectators: getSpectators(connectedSpectators),
         };
-        connectedPlayers.forEach((player) => {
-          player.connection.send(JSON.stringify(response));
-        });
-        connectedSpectators.forEach((player) => {
-          player.connection.send(
-            JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
-          );
-        });
+        sendResponseToPlayers(
+          MessageTypes.SPECTATE_GAME,
+          response,
+          connectedPlayers,
+          connectedSpectators
+        );
         break;
       }
       case MessageTypes.NOTIFY_TIME: {
@@ -607,27 +603,15 @@ class TiciTacaToeyGameEngine implements GameEngine {
             ...game,
             timers: getTimerBaseFromGame(game),
           },
-          players: connectedPlayers
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
-          spectators: connectedSpectators
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
+          players: getPlayers(connectedPlayers),
+          spectators: getSpectators(connectedSpectators),
         };
-        connectedPlayers.forEach((player) => {
-          player.connection.send(JSON.stringify(response));
-        });
-        connectedSpectators.forEach((player) => {
-          player.connection.send(
-            JSON.stringify({ ...response, type: MessageTypes.NOTIFY_TIME })
-          );
-        });
+        sendResponseToPlayers(
+          MessageTypes.SPECTATE_GAME,
+          response,
+          connectedPlayers,
+          connectedSpectators
+        );
         break;
       }
 
