@@ -296,7 +296,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
           [message.playerId]: new Timer(
             timePerPlayer,
             message.playerId,
-            message.gameId
+            message.gameId,
+            this
           ),
         };
         const game = {
@@ -351,7 +352,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
             [message.playerId]: new Timer(
               this.games[gameId].timePerPlayer,
               message.playerId,
-              message.gameId
+              message.gameId,
+              this
             ),
           },
         };
