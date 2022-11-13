@@ -1,6 +1,5 @@
 import WebSocket = require("ws");
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
-// import { engine } from "./server";
 
 interface TimerBase {
   isRunning: boolean;
@@ -14,12 +13,10 @@ class Timer implements TimerBase {
   #intervalID;
   #playerId: string;
   #gameId: string;
-  #engine: TiciTacaToeyGameEngine;
 
-  constructor(allotedTime: number, playerId, gameId, engine) {
+  constructor(allotedTime: number, playerId: string, gameId: string) {
     this.#playerId = playerId;
     this.#gameId = gameId;
-    this.#engine = engine;
     this.reset(allotedTime);
   }
 
@@ -27,7 +24,7 @@ class Timer implements TimerBase {
     return this.#startTime === 0 ? 0 : Date.now() - this.#startTime;
   }
 
-  start() {
+  start(engine: TiciTacaToeyGameEngine) {
     if (this.isRunning) {
       return "Timer is already running";
     }
@@ -45,14 +42,15 @@ class Timer implements TimerBase {
       this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
       this.#startTime = Date.now();
       if (this.timeLeft <= 0) {
-        this.#engine.play(playerTimeoutMessage);
+        engine.play(playerTimeoutMessage);
         this.stop();
+        return;
       }
       const timeUpdateMessage: UpdateTimeMessage = {
         type: MessageTypes.NOTIFY_TIME,
         gameId: this.#gameId,
       };
-      this.#engine.play(timeUpdateMessage); // notifying the client every 100 ms
+      engine.play(timeUpdateMessage); // notifying the client every 100 ms
     }, 100);
   }
 

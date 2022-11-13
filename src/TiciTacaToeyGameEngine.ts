@@ -12,6 +12,7 @@ import {
   CalculateWinnerInputType,
   CalculateWinnerOutputType,
   Timer,
+  PlayerStore,
 } from "./model";
 import WebSocket = require("ws");
 import uniq from "lodash.uniq";
@@ -30,38 +31,39 @@ function getTimerBaseFromGame(game) {
   return base;
 }
 
-function getConnectedPlayers(players, game) {
-  const connectedPlayers: ConnectedPlayer[] = Object.keys(players)
-    .filter((each) => game.players.includes(each))
-    .map((each) => players[each]);
+function getConnectedPlayers(players: PlayerStore, game: Game) {
+  const connectedPlayers: ConnectedPlayer[] = Object.values(players).filter(
+    (each) => game.players.includes(each.playerId)
+  );
 
   return connectedPlayers;
 }
-
-function getConnectedSpectators(players, game) {
-  const connectedSpectators: ConnectedPlayer[] = Object.keys(players)
-    .filter((each) => game.spectators.includes(each))
-    .map((each) => players[each]);
+function getConnectedSpectators(players: PlayerStore, game: Game) {
+  const connectedSpectators: ConnectedPlayer[] = Object.values(players).filter(
+    (each) => game.spectators.includes(each.playerId)
+  );
 
   return connectedSpectators;
 }
 
 function getPlayers(connectedPlayers: ConnectedPlayer[]) {
-  return connectedPlayers
-    .map((each) => ({ name: each.name, playerId: each.playerId }))
-    .reduce((acc, each) => {
-      acc[each.playerId] = each;
-      return acc;
-    }, {});
+  return connectedPlayers.reduce((acc, each) => {
+    acc[each.playerId] = {
+      name: each.name,
+      playerId: each.playerId,
+    };
+    return acc;
+  }, {});
 }
 
 function getSpectators(connectedSpectators: ConnectedPlayer[]) {
-  return connectedSpectators
-    .map((each) => ({ name: each.name, playerId: each.playerId }))
-    .reduce((acc, each) => {
-      acc[each.playerId] = each;
-      return acc;
-    }, {});
+  return connectedSpectators.reduce((acc, each) => {
+    acc[each.playerId] = {
+      name: each.name,
+      playerId: each.playerId,
+    };
+    return acc;
+  }, {});
 }
 
 function sendResponseToPlayers(
@@ -83,7 +85,7 @@ function sendResponseToPlayers(
   });
 }
 
-function getFirstPlayerFromGame(game) {
+function getFirstPlayerFromGame(game: Game) {
   return game.players[0];
 }
 
@@ -296,8 +298,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           [message.playerId]: new Timer(
             timePerPlayer,
             message.playerId,
-            message.gameId,
-            this
+            message.gameId
           ),
         };
         const game = {
@@ -319,6 +320,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ...this.games,
           [message.gameId]: game,
         };
+
         break;
       }
       case MessageTypes.JOIN_GAME: {
@@ -352,8 +354,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             [message.playerId]: new Timer(
               this.games[gameId].timePerPlayer,
               message.playerId,
-              message.gameId,
-              this
+              message.gameId
             ),
           },
         };
@@ -364,7 +365,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
         if (gameReadyToStart) {
           this.games[gameId].timers[
             getFirstPlayerFromGame(this.games[gameId])
-          ].start();
+          ].start(this);
         }
         break;
       }
@@ -397,11 +398,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
         let count = 0;
         let winner = "";
         game.players.forEach((player) => {
-          if (game.timers[player].timeLeft >= 0) count++, (winner = player);
+          if (game.timers[player].timeLeft > 0) {
+            count++;
+            winner = player;
+          }
         });
 
         if (count == 1) {
-          console.log(winner);
           this.games = {
             ...this.games,
             [message.gameId]: {
@@ -464,7 +467,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             },
           };
         } else {
-          game.timers[nextPlayer].start();
+          game.timers[nextPlayer].start(this);
         }
         break;
       }
@@ -624,7 +627,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
   notifyError(error) {
     const player: ConnectedPlayer = this.players[error.message.playerId];
-    console.log(error.message);
     const { ["connection"]: omit, ...message } = error.message;
     player.connection.send(
       JSON.stringify({ ...error, message, type: "ERROR" })
