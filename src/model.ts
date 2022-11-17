@@ -4,6 +4,7 @@ import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
 interface TimerBase {
   isRunning: boolean;
   timeLeft: number;
+  increment: number;
 }
 
 class Timer implements TimerBase {
@@ -13,11 +14,17 @@ class Timer implements TimerBase {
   #intervalID;
   #playerId: string;
   #gameId: string;
+  increment: number;
 
-  constructor(allotedTime: number, playerId: string, gameId: string) {
+  constructor(
+    allotedTime: number,
+    playerId: string,
+    gameId: string,
+    increment: number
+  ) {
     this.#playerId = playerId;
     this.#gameId = gameId;
-    this.reset(allotedTime);
+    this.reset(allotedTime, increment);
   }
 
   #getTimeElapsedSinceLastStart() {
@@ -41,6 +48,7 @@ class Timer implements TimerBase {
     this.#intervalID = setInterval(() => {
       this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
       this.#startTime = Date.now();
+      console.log(this.timeLeft);
       if (this.timeLeft <= 0) {
         engine.play(playerTimeoutMessage);
         this.stop();
@@ -63,10 +71,11 @@ class Timer implements TimerBase {
     clearInterval(this.#intervalID);
   }
 
-  reset(allotedTime: number) {
+  reset(allotedTime: number, increment: number) {
     this.isRunning = false;
     this.#startTime = 0;
     this.timeLeft = allotedTime;
+    this.increment = increment;
     if (this.isRunning) {
       this.#startTime = Date.now();
       return;
@@ -89,6 +98,7 @@ interface Game {
   turn: string;
   timers: Record<string, TimerBase>;
   timePerPlayer: number;
+  incrementPerPlayer: number;
 }
 
 interface Player {
@@ -167,6 +177,7 @@ interface StartGameMessage {
   playerId?: string;
   gameId?: string;
   timePerPlayer?: number;
+  incrementPerPlayer?: number;
 }
 
 interface JoinGameMessage {
