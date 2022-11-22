@@ -1,87 +1,6 @@
 import WebSocket = require("ws");
 import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
-
-interface TimerBase {
-  isRunning: boolean;
-  timeLeft: number;
-  increment: number;
-}
-
-class Timer implements TimerBase {
-  isRunning: boolean;
-  #startTime: number;
-  timeLeft: number;
-  #intervalID;
-  #playerId: string;
-  #gameId: string;
-  increment: number;
-
-  constructor(
-    allotedTime: number,
-    playerId: string,
-    gameId: string,
-    increment: number
-  ) {
-    this.#playerId = playerId;
-    this.#gameId = gameId;
-    this.reset(allotedTime, increment);
-  }
-
-  #getTimeElapsedSinceLastStart() {
-    return this.#startTime === 0 ? 0 : Date.now() - this.#startTime;
-  }
-
-  start(engine: TiciTacaToeyGameEngine) {
-    if (this.isRunning) {
-      return "Timer is already running";
-    }
-
-    const playerTimeoutMessage: PlayerTimeoutMessage = {
-      type: MessageTypes.PLAYER_TIMEOUT,
-      gameId: this.#gameId,
-      playerId: this.#playerId,
-    };
-
-    this.isRunning = true;
-    this.#startTime = Date.now();
-
-    this.#intervalID = setInterval(() => {
-      this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
-      this.#startTime = Date.now();
-      console.log(this.timeLeft);
-      if (this.timeLeft <= 0) {
-        engine.play(playerTimeoutMessage);
-        this.stop();
-        return;
-      }
-      const timeUpdateMessage: UpdateTimeMessage = {
-        type: MessageTypes.NOTIFY_TIME,
-        gameId: this.#gameId,
-      };
-      engine.play(timeUpdateMessage); // notifying the client every 100 ms
-    }, 100);
-  }
-
-  stop() {
-    if (!this.isRunning) {
-      return;
-    }
-    this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
-    this.isRunning = false;
-    clearInterval(this.#intervalID);
-  }
-
-  reset(allotedTime: number, increment: number) {
-    this.isRunning = false;
-    this.#startTime = 0;
-    this.timeLeft = allotedTime;
-    this.increment = increment;
-    if (this.isRunning) {
-      this.#startTime = Date.now();
-      return;
-    }
-  }
-}
+import { TimerBase } from "./timer";
 
 interface Game {
   gameId: string;
@@ -353,6 +272,6 @@ export {
   CalculateWinnerInputType,
   WinningSequence,
   CalculateWinnerOutputType,
-  Timer,
   PlayerTimeoutMessage,
+  UpdateTimeMessage,
 };

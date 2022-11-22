@@ -11,17 +11,17 @@ import {
   COMPLETED_GAME_STATUS,
   CalculateWinnerInputType,
   CalculateWinnerOutputType,
-  Timer,
   PlayerStore,
 } from "./model";
 import WebSocket = require("ws");
 import uniq from "lodash.uniq";
+import { Timer } from "./timer";
 
 const EMPTY_POSITION = "-";
 const DEFAULT_TIME_PER_PLAYER = 5000;
 const DEFAULT_INCREMENT_PER_PLAYER = 1000;
 
-function getTimerBaseFromGame(game: Game) {
+const getTimerBaseFromGame = (game: Game) => {
   const base = Object.keys(game.timers).reduce((acc, playerId) => {
     acc[playerId] = {
       isRunning: game.timers[playerId].isRunning,
@@ -30,24 +30,24 @@ function getTimerBaseFromGame(game: Game) {
     return acc;
   }, {});
   return base;
-}
+};
 
-function getConnectedPlayers(players: PlayerStore, game: Game) {
+const getConnectedPlayers = (players: PlayerStore, game: Game) => {
   const connectedPlayers: ConnectedPlayer[] = Object.values(players).filter(
     (each) => game.players.includes(each.playerId)
   );
 
   return connectedPlayers;
-}
-function getConnectedSpectators(players: PlayerStore, game: Game) {
+};
+const getConnectedSpectators = (players: PlayerStore, game: Game) => {
   const connectedSpectators: ConnectedPlayer[] = Object.values(players).filter(
     (each) => game.spectators.includes(each.playerId)
   );
 
   return connectedSpectators;
-}
+};
 
-function getPlayers(connectedPlayers: ConnectedPlayer[]) {
+const getPlayers = (connectedPlayers: ConnectedPlayer[]) => {
   return connectedPlayers.reduce((acc, each) => {
     acc[each.playerId] = {
       name: each.name,
@@ -55,24 +55,23 @@ function getPlayers(connectedPlayers: ConnectedPlayer[]) {
     };
     return acc;
   }, {});
-}
+};
 
-function getSpectators(connectedSpectators: ConnectedPlayer[]) {
-  return connectedSpectators.reduce((acc, each) => {
-    acc[each.playerId] = {
-      name: each.name,
-      playerId: each.playerId,
-    };
-    return acc;
-  }, {});
-}
+// const getSpectators = (connectedSpectators: ConnectedPlayer[]) => {
+//   return connectedSpectators.reduce((acc, each) => {
+//     acc[each.playerId] = {
+//       name: each.name,
+//       playerId: each.playerId,
+//     };
+//     return acc;
+//   }, {});
+// };
 
-function sendResponseToPlayers(
-  messageType: MessageTypes,
+const sendResponseToPlayers = (
   response: Response,
   connectedPlayers: ConnectedPlayer[],
   connectedSpectators: ConnectedPlayer[]
-) {
+) => {
   connectedPlayers.forEach((player) => {
     player.connection.send(JSON.stringify(response));
   });
@@ -80,15 +79,15 @@ function sendResponseToPlayers(
     player.connection.send(
       JSON.stringify({
         ...response,
-        type: messageType,
+        type: MessageTypes.SPECTATE_GAME,
       })
     );
   });
-}
+};
 
-function getFirstPlayerFromGame(game: Game) {
+const getFirstPlayerFromGame = (game: Game) => {
   return game.players[0];
-}
+};
 
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
@@ -301,8 +300,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           [message.playerId]: new Timer(
             timePerPlayer,
             message.playerId,
-            message.gameId,
-            incrementPerPlayer
+            message.gameId
           ),
         };
         const game = {
@@ -359,8 +357,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
             [message.playerId]: new Timer(
               this.games[gameId].timePerPlayer,
               message.playerId,
-              message.gameId,
-              this.games[gameId].incrementPerPlayer
+              message.gameId
             ),
           },
         };
@@ -426,9 +423,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
 
-        game.timers[message.playerId].stop();
-        game.timers[message.playerId].timeLeft +=
-          game.timers[message.playerId].increment;
+        game.timers[message.playerId].stop(
+          game.timers[message.playerId].increment
+        );
 
         const nextPlayer = calculateNextTurn(game);
 
@@ -520,10 +517,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
                 timers: getTimerBaseFromGame(game),
               },
               players: getPlayers(connectedPlayers),
-              spectators: getSpectators(connectedSpectators),
+              spectators: getPlayers(connectedSpectators),
             };
             sendResponseToPlayers(
-              MessageTypes.SPECTATE_GAME,
               response,
               connectedPlayers,
               connectedSpectators
@@ -533,36 +529,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.START_GAME:
       case MessageTypes.JOIN_GAME:
       case MessageTypes.SPECTATE_GAME:
-      case MessageTypes.PLAYER_TIMEOUT: {
-        const game = this.games[message.gameId];
-        const connectedPlayers: ConnectedPlayer[] = getConnectedPlayers(
-          this.players,
-          game
-        );
-
-        const connectedSpectators: ConnectedPlayer[] = getConnectedSpectators(
-          this.players,
-          game
-        );
-        const response: Response = {
-          type: [GameStatus.GAME_WON_BY_TIMEOUT].includes(game.status)
-            ? MessageTypes.GAME_COMPLETE
-            : message.type,
-          game: {
-            ...game,
-            timers: getTimerBaseFromGame(game),
-          },
-          players: getPlayers(connectedPlayers),
-          spectators: getSpectators(connectedSpectators),
-        };
-        sendResponseToPlayers(
-          MessageTypes.SPECTATE_GAME,
-          response,
-          connectedPlayers,
-          connectedSpectators
-        );
-        break;
-      }
+      case MessageTypes.PLAYER_TIMEOUT:
+      case MessageTypes.NOTIFY_TIME:
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
 
@@ -577,9 +545,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
         );
 
         const response: Response = {
-          type: [GameStatus.GAME_WON, GameStatus.GAME_ENDS_IN_A_DRAW].includes(
-            game.status
-          )
+          type: [
+            GameStatus.GAME_WON,
+            GameStatus.GAME_ENDS_IN_A_DRAW,
+            GameStatus.GAME_WON_BY_TIMEOUT,
+          ].includes(game.status)
             ? MessageTypes.GAME_COMPLETE
             : message.type,
           game: {
@@ -587,47 +557,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
             timers: getTimerBaseFromGame(game),
           },
           players: getPlayers(connectedPlayers),
-          spectators: getSpectators(connectedSpectators),
+          spectators: getPlayers(connectedSpectators),
         };
-        sendResponseToPlayers(
-          MessageTypes.SPECTATE_GAME,
-          response,
-          connectedPlayers,
-          connectedSpectators
-        );
+        sendResponseToPlayers(response, connectedPlayers, connectedSpectators);
         break;
       }
-      case MessageTypes.NOTIFY_TIME: {
-        const game = this.games[message.gameId];
-
-        const connectedPlayers: ConnectedPlayer[] = getConnectedPlayers(
-          this.players,
-          game
-        );
-
-        const connectedSpectators: ConnectedPlayer[] = getConnectedSpectators(
-          this.players,
-          game
-        );
-
-        const response: Response = {
-          type: MessageTypes.NOTIFY_TIME,
-          game: {
-            ...game,
-            timers: getTimerBaseFromGame(game),
-          },
-          players: getPlayers(connectedPlayers),
-          spectators: getSpectators(connectedSpectators),
-        };
-        sendResponseToPlayers(
-          MessageTypes.SPECTATE_GAME,
-          response,
-          connectedPlayers,
-          connectedSpectators
-        );
-        break;
-      }
-
       default:
         break;
     }
