@@ -57,16 +57,6 @@ const getPlayers = (connectedPlayers: ConnectedPlayer[]) => {
   }, {});
 };
 
-// const getSpectators = (connectedSpectators: ConnectedPlayer[]) => {
-//   return connectedSpectators.reduce((acc, each) => {
-//     acc[each.playerId] = {
-//       name: each.name,
-//       playerId: each.playerId,
-//     };
-//     return acc;
-//   }, {});
-// };
-
 const sendResponseToPlayers = (
   response: Response,
   connectedPlayers: ConnectedPlayer[],
@@ -423,9 +413,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
 
-        game.timers[message.playerId].stop(
-          game.timers[message.playerId].increment
-        );
+        game.timers[message.playerId].stop(game.incrementPerPlayer);
 
         const nextPlayer = calculateNextTurn(game);
 
