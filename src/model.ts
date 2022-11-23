@@ -1,4 +1,7 @@
 import WebSocket = require("ws");
+import TiciTacaToeyGameEngine from "./TiciTacaToeyGameEngine";
+import { TimerBase } from "./timer";
+
 interface Game {
   gameId: string;
   name: string;
@@ -12,12 +15,14 @@ interface Game {
   winningSequenceLength: number;
   status: GameStatus;
   turn: string;
+  timers: Record<string, TimerBase>;
+  timePerPlayer: number;
+  incrementPerPlayer: number;
 }
 
 interface Player {
   name: string;
   playerId: string;
-  // add time here
 }
 
 interface ConnectedPlayer extends Player {
@@ -70,7 +75,6 @@ interface RegisterPlayerMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  // add time
 }
 
 interface RegisterRobotMessage {
@@ -80,7 +84,6 @@ interface RegisterRobotMessage {
   connection: WebSocket;
   playerId?: string;
   gameId?: string;
-  // add time
 }
 
 interface StartGameMessage {
@@ -92,10 +95,19 @@ interface StartGameMessage {
   connection?: WebSocket;
   playerId?: string;
   gameId?: string;
+  timePerPlayer?: number;
+  incrementPerPlayer?: number;
 }
 
 interface JoinGameMessage {
   type: MessageTypes.JOIN_GAME;
+  gameId: string;
+  connection?: WebSocket;
+  playerId?: string;
+}
+
+interface UpdateTimeMessage {
+  type: MessageTypes.NOTIFY_TIME;
   gameId: string;
   connection?: WebSocket;
   playerId?: string;
@@ -124,6 +136,13 @@ interface PlayerDisconnectMessage {
   connection?: WebSocket; // todo: this is really not required :(
 }
 
+interface PlayerTimeoutMessage {
+  type: MessageTypes.PLAYER_TIMEOUT;
+  playerId: string;
+  gameId: string;
+  connection?: WebSocket;
+}
+
 type Message =
   | RegisterPlayerMessage
   | RegisterRobotMessage
@@ -131,7 +150,9 @@ type Message =
   | JoinGameMessage
   | SpectateGameMessage
   | MakeMoveMessage
-  | PlayerDisconnectMessage;
+  | PlayerDisconnectMessage
+  | UpdateTimeMessage
+  | PlayerTimeoutMessage;
 
 // Responses
 
@@ -150,7 +171,9 @@ interface GameActionResponse extends GameState {
     | MessageTypes.MAKE_MOVE
     | MessageTypes.SPECTATE_GAME
     | MessageTypes.PLAYER_DISCONNECT
-    | MessageTypes.GAME_COMPLETE;
+    | MessageTypes.GAME_COMPLETE
+    | MessageTypes.NOTIFY_TIME
+    | MessageTypes.PLAYER_TIMEOUT;
 }
 
 type Response =
@@ -172,6 +195,8 @@ enum MessageTypes {
   SPECTATE_GAME = "SPECTATE_GAME",
   GAME_COMPLETE = "GAME_COMPLETE", // response only
   PLAYER_DISCONNECT = "PLAYER_DISCONNECT",
+  PLAYER_TIMEOUT = "PLAYER_TIMEOUT",
+  NOTIFY_TIME = "NOTIFY_TIME",
 }
 
 enum ErrorCodes {
@@ -188,6 +213,7 @@ enum ErrorCodes {
   BOARD_SIZE_CANNOT_BE_GREATER_THAN_12 = "BOARD_SIZE_CANNOT_BE_GREATER_THAN_12",
   PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10 = "PLAYER_COUNT_CANNOT_BE_GREATER_THAN_10",
   SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10 = "SPECTATOR_COUNT_CANNOT_BE_GREATER_THAN_10",
+  PLAYER_TIME_OUT = "PLAYER_TIME_OUT",
 }
 
 enum GameStatus {
@@ -196,12 +222,14 @@ enum GameStatus {
   GAME_WON = "GAME_WON",
   GAME_ENDS_IN_A_DRAW = "GAME_ENDS_IN_A_DRAW",
   GAME_ABANDONED = "GAME_ABANDONED",
+  GAME_WON_BY_TIMEOUT = "GAME_WON_BY_TIMEOUT",
 }
 
 const COMPLETED_GAME_STATUS = [
   GameStatus.GAME_ABANDONED,
   GameStatus.GAME_ENDS_IN_A_DRAW,
   GameStatus.GAME_WON,
+  GameStatus.GAME_WON_BY_TIMEOUT,
 ];
 
 // Winner Calculation Enhancements
@@ -244,4 +272,6 @@ export {
   CalculateWinnerInputType,
   WinningSequence,
   CalculateWinnerOutputType,
+  PlayerTimeoutMessage,
+  UpdateTimeMessage,
 };

@@ -11,11 +11,73 @@ import {
   COMPLETED_GAME_STATUS,
   CalculateWinnerInputType,
   CalculateWinnerOutputType,
+  PlayerStore,
 } from "./model";
 import WebSocket = require("ws");
 import uniq from "lodash.uniq";
+import { Timer } from "./timer";
 
 const EMPTY_POSITION = "-";
+const DEFAULT_TIME_PER_PLAYER = 5000;
+const DEFAULT_INCREMENT_PER_PLAYER = 1000;
+
+const getTimerBaseFromGame = (game: Game) => {
+  const base = Object.keys(game.timers).reduce((acc, playerId) => {
+    acc[playerId] = {
+      isRunning: game.timers[playerId].isRunning,
+      timeLeft: game.timers[playerId].timeLeft,
+    };
+    return acc;
+  }, {});
+  return base;
+};
+
+const getConnectedPlayers = (players: PlayerStore, game: Game) => {
+  const connectedPlayers: ConnectedPlayer[] = Object.values(players).filter(
+    (each) => game.players.includes(each.playerId)
+  );
+
+  return connectedPlayers;
+};
+const getConnectedSpectators = (players: PlayerStore, game: Game) => {
+  const connectedSpectators: ConnectedPlayer[] = Object.values(players).filter(
+    (each) => game.spectators.includes(each.playerId)
+  );
+
+  return connectedSpectators;
+};
+
+const getPlayers = (connectedPlayers: ConnectedPlayer[]) => {
+  return connectedPlayers.reduce((acc, each) => {
+    acc[each.playerId] = {
+      name: each.name,
+      playerId: each.playerId,
+    };
+    return acc;
+  }, {});
+};
+
+const sendResponseToPlayers = (
+  response: Response,
+  connectedPlayers: ConnectedPlayer[],
+  connectedSpectators: ConnectedPlayer[]
+) => {
+  connectedPlayers.forEach((player) => {
+    player.connection.send(JSON.stringify(response));
+  });
+  connectedSpectators.forEach((player) => {
+    player.connection.send(
+      JSON.stringify({
+        ...response,
+        type: MessageTypes.SPECTATE_GAME,
+      })
+    );
+  });
+};
+
+const getFirstPlayerFromGame = (game: Game) => {
+  return game.players[0];
+};
 
 class TiciTacaToeyGameEngine implements GameEngine {
   games;
@@ -52,9 +114,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
       switch (message.type) {
         case MessageTypes.REGISTER_PLAYER:
           break;
+        case MessageTypes.PLAYER_TIMEOUT:
+          break;
         case MessageTypes.REGISTER_ROBOT:
           break;
         case MessageTypes.PLAYER_DISCONNECT:
+          break;
+        case MessageTypes.NOTIFY_TIME:
           break;
         case MessageTypes.START_GAME: {
           if (message.boardSize < 2) {
@@ -147,6 +213,11 @@ class TiciTacaToeyGameEngine implements GameEngine {
           ) {
             reject({ error: ErrorCodes.INVALID_MOVE, message });
           }
+          if (
+            this.games[message.gameId].timers[message.playerId].timeLeft <= 0
+          ) {
+            reject({ error: ErrorCodes.PLAYER_TIME_OUT, message });
+          }
           break;
         }
         default:
@@ -175,6 +246,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
         };
         break;
       }
+      case MessageTypes.NOTIFY_TIME:
+        break;
       case MessageTypes.PLAYER_DISCONNECT: {
         // Remove player from players list
         const { playerId } = message;
@@ -209,6 +282,17 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
         }
+        const timePerPlayer = message.timePerPlayer ?? DEFAULT_TIME_PER_PLAYER;
+        const incrementPerPlayer =
+          message.incrementPerPlayer ?? DEFAULT_INCREMENT_PER_PLAYER;
+
+        const timers: Record<string, Timer> = {
+          [message.playerId]: new Timer(
+            timePerPlayer,
+            message.playerId,
+            message.gameId
+          ),
+        };
         const game = {
           gameId: message.gameId,
           name: message.name,
@@ -221,14 +305,19 @@ class TiciTacaToeyGameEngine implements GameEngine {
           players: [message.playerId],
           spectators: [],
           status: GameStatus.WAITING_FOR_PLAYERS,
+          timers: timers,
+          timePerPlayer: timePerPlayer,
+          incrementPerPlayer: incrementPerPlayer,
         };
         this.games = {
           ...this.games,
           [message.gameId]: game,
         };
+
         break;
       }
       case MessageTypes.JOIN_GAME: {
+        const gameId = message.gameId;
         if (!(message.playerId in this.players)) {
           this.players = addPlayer(
             this.players,
@@ -237,14 +326,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
         }
-
-        const gameId = message.gameId;
-
         const updatedPlayersList = uniq([
           ...this.games[gameId].players,
           message.playerId,
         ]);
-
         const gameReadyToStart =
           updatedPlayersList.length === this.games[gameId].playerCount;
 
@@ -254,12 +339,27 @@ class TiciTacaToeyGameEngine implements GameEngine {
           status: gameReadyToStart
             ? GameStatus.GAME_IN_PROGRESS
             : GameStatus.WAITING_FOR_PLAYERS,
-          turn: gameReadyToStart ? this.games[gameId].players[0] : undefined,
+          turn: gameReadyToStart
+            ? getFirstPlayerFromGame(this.games[gameId])
+            : undefined,
+          timers: {
+            ...this.games[gameId].timers,
+            [message.playerId]: new Timer(
+              this.games[gameId].timePerPlayer,
+              message.playerId,
+              message.gameId
+            ),
+          },
         };
         this.games = {
           ...this.games,
           [message.gameId]: game,
         };
+        if (gameReadyToStart) {
+          this.games[gameId].timers[
+            getFirstPlayerFromGame(this.games[gameId])
+          ].start(this);
+        }
         break;
       }
       case MessageTypes.SPECTATE_GAME: {
@@ -277,8 +377,46 @@ class TiciTacaToeyGameEngine implements GameEngine {
         };
         break;
       }
+      case MessageTypes.PLAYER_TIMEOUT: {
+        const game = this.games[message.gameId];
+        const nextPlayer = calculateNextTurn(game);
+        this.games = {
+          ...this.games,
+          [game.gameId]: {
+            ...game,
+            turn: nextPlayer,
+          },
+        };
+
+        let count = 0;
+        let winner = "";
+        game.players.forEach((player) => {
+          if (game.timers[player].timeLeft > 0) {
+            count++;
+            winner = player;
+          }
+        });
+
+        if (count == 1) {
+          this.games = {
+            ...this.games,
+            [message.gameId]: {
+              ...this.games[message.gameId],
+              status: GameStatus.GAME_WON_BY_TIMEOUT,
+              winner: winner,
+              turn: "",
+            },
+          };
+        }
+        break;
+      }
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
+
+        game.timers[message.playerId].stop(game.incrementPerPlayer);
+
+        const nextPlayer = calculateNextTurn(game);
+
         const positions = [...this.games[game.gameId].positions];
         positions[message.coordinateX][message.coordinateY] = message.playerId;
         this.games = {
@@ -286,7 +424,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
           [game.gameId]: {
             ...game,
             positions,
-            turn: calculateNextTurn(game.players, game.turn, game.playerCount),
+            turn: nextPlayer,
           },
         };
 
@@ -321,8 +459,9 @@ class TiciTacaToeyGameEngine implements GameEngine {
               status: GameStatus.GAME_ENDS_IN_A_DRAW,
             },
           };
+        } else {
+          game.timers[nextPlayer].start(this);
         }
-
         break;
       }
     }
@@ -360,74 +499,55 @@ class TiciTacaToeyGameEngine implements GameEngine {
               .filter((each) => game.spectators.includes(each))
               .map((each) => this.players[each]);
             const response: Response = {
-              // todo: extract as generic method
               type: message.type,
-              game,
-              players: connectedPlayers
-                .map((each) => ({ name: each.name, playerId: each.playerId }))
-                .reduce((acc, each) => {
-                  acc[each.playerId] = each;
-                  return acc;
-                }, {}),
-              spectators: connectedSpectators
-                .map((each) => ({ name: each.name, playerId: each.playerId }))
-                .reduce((acc, each) => {
-                  acc[each.playerId] = each;
-                  return acc;
-                }, {}),
+              game: {
+                ...game,
+                timers: getTimerBaseFromGame(game),
+              },
+              players: getPlayers(connectedPlayers),
+              spectators: getPlayers(connectedSpectators),
             };
-            connectedPlayers.forEach((player) => {
-              player.connection.send(JSON.stringify(response));
-            });
-            connectedSpectators.forEach((player) => {
-              player.connection.send(
-                JSON.stringify({
-                  ...response,
-                  type: MessageTypes.SPECTATE_GAME,
-                })
-              );
-            });
+            sendResponseToPlayers(
+              response,
+              connectedPlayers,
+              connectedSpectators
+            );
           });
         break;
       case MessageTypes.START_GAME:
       case MessageTypes.JOIN_GAME:
       case MessageTypes.SPECTATE_GAME:
+      case MessageTypes.PLAYER_TIMEOUT:
+      case MessageTypes.NOTIFY_TIME:
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
-        const connectedPlayers: ConnectedPlayer[] = Object.keys(this.players)
-          .filter((each) => game.players.includes(each))
-          .map((each) => this.players[each]);
-        const connectedSpectators: ConnectedPlayer[] = Object.keys(this.players)
-          .filter((each) => game.spectators.includes(each))
-          .map((each) => this.players[each]);
+
+        const connectedPlayers: ConnectedPlayer[] = getConnectedPlayers(
+          this.players,
+          game
+        );
+
+        const connectedSpectators: ConnectedPlayer[] = getConnectedSpectators(
+          this.players,
+          game
+        );
+
         const response: Response = {
-          type: [GameStatus.GAME_WON, GameStatus.GAME_ENDS_IN_A_DRAW].includes(
-            game.status
-          )
+          type: [
+            GameStatus.GAME_WON,
+            GameStatus.GAME_ENDS_IN_A_DRAW,
+            GameStatus.GAME_WON_BY_TIMEOUT,
+          ].includes(game.status)
             ? MessageTypes.GAME_COMPLETE
             : message.type,
-          game,
-          players: connectedPlayers
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
-          spectators: connectedSpectators
-            .map((each) => ({ name: each.name, playerId: each.playerId }))
-            .reduce((acc, each) => {
-              acc[each.playerId] = each;
-              return acc;
-            }, {}),
+          game: {
+            ...game,
+            timers: getTimerBaseFromGame(game),
+          },
+          players: getPlayers(connectedPlayers),
+          spectators: getPlayers(connectedSpectators),
         };
-        connectedPlayers.forEach((player) => {
-          player.connection.send(JSON.stringify(response));
-        });
-        connectedSpectators.forEach((player) => {
-          player.connection.send(
-            JSON.stringify({ ...response, type: MessageTypes.SPECTATE_GAME })
-          );
-        });
+        sendResponseToPlayers(response, connectedPlayers, connectedSpectators);
         break;
       }
       default:
@@ -454,17 +574,20 @@ const addPlayer = (
 ): any => {
   return {
     ...players,
-    [playerId]: { playerId: playerId, name: name, connection: connection },
+    [playerId]: {
+      playerId: playerId,
+      name: name,
+      connection: connection,
+    },
   };
 };
 
-const calculateNextTurn = (
-  players: string[],
-  currentTurn: string,
-  playerCount: number
-): string => {
-  const nextPlayerIndex = (players.indexOf(currentTurn) + 1) % playerCount;
-  return players[nextPlayerIndex];
+const calculateNextTurn = (game: Game): string => {
+  const nextPlayerIndex =
+    (game.players.indexOf(game.turn) + 1) % game.playerCount;
+  return game.timers[game.players[nextPlayerIndex]].timeLeft <= 0
+    ? calculateNextTurn(game)
+    : game.players[nextPlayerIndex];
 };
 
 const generateBoard = (boardSize: number): string[][] => {
