@@ -18,7 +18,7 @@ import uniq from "lodash.uniq";
 import { Timer } from "./timer";
 
 const EMPTY_POSITION = "-";
-const DEFAULT_TIME_PER_PLAYER = 5000;
+const DEFAULT_TIME_PER_PLAYER = 10000;
 const DEFAULT_INCREMENT_PER_PLAYER = 1000;
 
 const getTimerBaseFromGame = (game: Game) => {
@@ -65,6 +65,7 @@ const sendResponseToPlayers = (
   connectedPlayers.forEach((player) => {
     player.connection.send(JSON.stringify(response));
   });
+
   connectedSpectators.forEach((player) => {
     player.connection.send(
       JSON.stringify({
@@ -521,7 +522,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
       case MessageTypes.NOTIFY_TIME:
       case MessageTypes.MAKE_MOVE: {
         const game = this.games[message.gameId];
-
         const connectedPlayers: ConnectedPlayer[] = getConnectedPlayers(
           this.players,
           game

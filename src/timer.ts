@@ -33,7 +33,10 @@ export class Timer implements TimerBase {
     this.#startTime = Date.now();
 
     this.#intervalID = setInterval(() => {
-      this.timeLeft = this.timeLeft - this.#getTimeElapsedSinceLastStart();
+      this.timeLeft = Math.max(
+        0,
+        this.timeLeft - this.#getTimeElapsedSinceLastStart()
+      );
       this.#startTime = Date.now();
       if (this.timeLeft <= 0) {
         const playerTimeoutMessage: PlayerTimeoutMessage = {
