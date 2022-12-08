@@ -283,9 +283,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
             message.connection
           );
         }
-        const timePerPlayer = message.timePerPlayer ?? DEFAULT_TIME_PER_PLAYER;
+        const timePerPlayer =
+          message.timePerPlayer * 1000 ?? DEFAULT_TIME_PER_PLAYER;
         const incrementPerPlayer =
-          message.incrementPerPlayer ?? DEFAULT_INCREMENT_PER_PLAYER;
+          message.incrementPerPlayer * 1000 ?? DEFAULT_INCREMENT_PER_PLAYER;
 
         const timers: Record<string, Timer> = {
           [message.playerId]: new Timer(
