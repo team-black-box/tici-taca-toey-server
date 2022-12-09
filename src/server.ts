@@ -70,7 +70,6 @@ wss.on("connection", (ws) => {
         })
       );
     }
-
     const enrichedMessage: Message = {
       ...message,
       playerId,
@@ -78,7 +77,7 @@ wss.on("connection", (ws) => {
       connection: ws,
     };
     try {
-      engine.play(enrichedMessage).then(log);
+      engine.play(enrichedMessage).then(log).catch(console.error);
     } catch (exception) {
       fs.writeFile("../errorLogs/serverError.log", exception, (error) => {
         if (error) {
@@ -96,7 +95,7 @@ wss.on("connection", (ws) => {
       playerId,
     };
     try {
-      engine.play(playerDisconnectMessage).then(log);
+      engine.play(playerDisconnectMessage).then(log).catch(console.error);
     } catch (exception) {
       fs.writeFile("../errorLogs/serverError.log", exception, (error) => {
         if (error) {

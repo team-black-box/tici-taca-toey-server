@@ -18,7 +18,7 @@ import uniq from "lodash.uniq";
 import { Timer } from "./timer";
 
 const EMPTY_POSITION = "-";
-const DEFAULT_TIME_PER_PLAYER = 10000;
+const DEFAULT_TIME_PER_PLAYER = 100000000;
 const DEFAULT_INCREMENT_PER_PLAYER = 1000;
 
 const getTimerBaseFromGame = (game: Game) => {
@@ -63,11 +63,11 @@ const sendResponseToPlayers = (
   connectedSpectators: ConnectedPlayer[]
 ) => {
   connectedPlayers.forEach((player) => {
-    player.connection.send(JSON.stringify(response));
+    player?.connection?.send(JSON.stringify(response));
   });
 
   connectedSpectators.forEach((player) => {
-    player.connection.send(
+    player?.connection?.send(
       JSON.stringify({
         ...response,
         type: MessageTypes.SPECTATE_GAME,
@@ -97,6 +97,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
         .then((message) => {
           this.transition(message);
           if (notify) {
+            console.log("hsuiefhsi");
             this.notify(message);
           }
           resolve(this);
@@ -476,14 +477,17 @@ class TiciTacaToeyGameEngine implements GameEngine {
   // functions with side effects - websocket send operation
 
   notify(message: Message) {
+    console.log(message.type);
     switch (message.type) {
-      case (MessageTypes.REGISTER_PLAYER, MessageTypes.REGISTER_ROBOT): {
+      case MessageTypes.REGISTER_ROBOT:
+      case MessageTypes.REGISTER_PLAYER: {
         const response: Response = {
           type: message.type,
           name: message.name,
           playerId: message.playerId,
         };
         message.connection.send(JSON.stringify(response));
+        console.log(JSON.stringify(response));
         break;
       }
       case MessageTypes.PLAYER_DISCONNECT:
@@ -559,8 +563,10 @@ class TiciTacaToeyGameEngine implements GameEngine {
   notifyError(error) {
     const player: ConnectedPlayer = this.players[error.message.playerId];
     const { ["connection"]: omit, ...message } = error.message;
-    player.connection.send(
-      JSON.stringify({ ...error, message, type: "ERROR" })
+    player?.connection?.send(
+      JSON.stringify({ ...error, message, type: "ERROR" }, () => {
+        throw new Error("Failed to send a message");
+      })
     );
   }
 }
