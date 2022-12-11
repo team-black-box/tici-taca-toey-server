@@ -97,7 +97,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
         .then((message) => {
           this.transition(message);
           if (notify) {
-            console.log("hsuiefhsi");
             this.notify(message);
           }
           resolve(this);
@@ -477,7 +476,6 @@ class TiciTacaToeyGameEngine implements GameEngine {
   // functions with side effects - websocket send operation
 
   notify(message: Message) {
-    console.log(message.type);
     switch (message.type) {
       case MessageTypes.REGISTER_ROBOT:
       case MessageTypes.REGISTER_PLAYER: {
@@ -564,9 +562,7 @@ class TiciTacaToeyGameEngine implements GameEngine {
     const player: ConnectedPlayer = this.players[error.message.playerId];
     const { ["connection"]: omit, ...message } = error.message;
     player?.connection?.send(
-      JSON.stringify({ ...error, message, type: "ERROR" }, () => {
-        throw new Error("Failed to send a message");
-      })
+      JSON.stringify({ ...error, message, type: "ERROR" }, console.error)
     );
   }
 }
