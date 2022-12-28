@@ -2,9 +2,9 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [master]
+    branches: [master, deploy-server-on-kubernetes ]
   pull_request:
-    branches: [master]
+    branches: [master, deploy-server-on-kubernetes]
 
 jobs:
   build-test:
