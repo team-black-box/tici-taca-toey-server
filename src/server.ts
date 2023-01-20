@@ -27,7 +27,7 @@ console.log(`
 const log = (engine: GameEngine) => {
   console.log(`Active Players Count: ${Object.values(engine.players).length}
 Active Players: ${Object.values(engine.players)
-    .map((each) => each.name)
+    .map((each) => each.name + " " + each.playerId)
     .join(", ")}
 Active Games Count: ${Object.values(engine.games).length}
 Active Games: ${Object.values(engine.games)
@@ -73,10 +73,12 @@ wss.on("connection", (ws) => {
 
     const enrichedMessage: Message = {
       ...message,
-      playerId,
+      playerId: message && message.playerId ? message.playerId : playerId,
       gameId: message && message.gameId ? message.gameId : uuid(), // nullish coalescing!!
       connection: ws,
     };
+    console.log(enrichedMessage);
+
     try {
       engine.play(enrichedMessage).then(log);
     } catch (exception) {
