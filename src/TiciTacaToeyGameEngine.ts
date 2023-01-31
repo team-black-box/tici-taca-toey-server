@@ -247,71 +247,13 @@ class TiciTacaToeyGameEngine implements GameEngine {
         //   [message.playerId]: { ...robotData },
         // };
         // console.log(this.robots);
-        this.players = addPlayer(
-          this.players,
-          message.playerId,
-          message.name,
-          message.connection
-        );
-        console.log("Players List", this.players);
-        // want to change game status to GAME_IN_PROGRESS here
-        // complete this this.games object, make similar to JOIN_GAME
-        // this.games = {
-        //   ...this.games,
-        //   status: GameStatus.GAME_IN_PROGRESS,
-        // };
-        // console.log(this.games);
-
-        break;
-      }
-      // Should be called after START_GAME
-      case MessageTypes.PLAY_WITH_ROBOT: {
-        const gameId = message.gameId;
-        if (!(message.playerId in this.players)) {
-          this.players = addPlayer(
-            this.players,
-            "robot" + message.playerId,
-            "",
-            message.connection
-          );
-        }
-        const updatedPlayersList = uniq([
-          ...this.games[gameId].players,
-          "robot" + message.playerId,
-        ]);
-        console.log(updatedPlayersList);
-        const gameReadyToStart =
-          updatedPlayersList.length === this.games[gameId].playerCount;
-        console.log("GAME READY TO START" + gameReadyToStart);
-
-        // const game = {
-        //   ...this.games[gameId],
-        //   players: [...updatedPlayersList],
-        //   status: gameReadyToStart
-        //     ? GameStatus.GAME_IN_PROGRESS
-        //     : GameStatus.WAITING_FOR_PLAYERS,
-        //   turn: gameReadyToStart
-        //     ? getFirstPlayerFromGame(this.games[gameId])
-        //     : undefined,
-        //   timers: {
-        //     ...this.games[gameId].timers,
-        //     [message.playerId]: new Timer(
-        //       this.games[gameId].timePerPlayer,
-        //       message.playerId,
-        //       message.gameId
-        //     ),
-        //   },
-        // };
-        // this.games = {
-        //   ...this.games,
-        //   [message.gameId]: game,
-        // };
-        // if (gameReadyToStart) {
-        //   this.games[gameId].timers[
-        //     getFirstPlayerFromGame(this.games[gameId])
-        //   ].start(this);
-        // }
-        console.log("Robot joined the game");
+        // this.players = addPlayer(
+        //   this.players,
+        //   message.playerId,
+        //   message.name,
+        //   message.connection
+        // );
+        // console.log("Players List", this.players);
         break;
       }
       case MessageTypes.NOTIFY_TIME:
@@ -384,6 +326,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
         break;
       }
+      // PLAY_WITH_ROBOT should be called after START_GAME
+      case MessageTypes.PLAY_WITH_ROBOT:
       case MessageTypes.JOIN_GAME: {
         const gameId = message.gameId;
         if (!(message.playerId in this.players)) {
@@ -484,10 +428,19 @@ class TiciTacaToeyGameEngine implements GameEngine {
         game.timers[message.playerId].stop(game.incrementPerPlayer);
 
         const nextPlayer = calculateNextTurn(game);
-        // If the next player's Id starts with 'robot', then place the sign randomly somewhere in positions available
-
         const positions = [...this.games[game.gameId].positions];
         positions[message.coordinateX][message.coordinateY] = message.playerId;
+
+        // If the next player's Id starts with 'robot', then place the robotId randomly somewhere in positions available
+        if (nextPlayer.startsWith("robot")) {
+          // Generates two random numbers between range of 0 to length of positions
+          const Xcordinate = Math.floor(Math.random() * positions.length);
+          const Ycordinate = Math.floor(Math.random() * positions.length);
+          if (positions[Xcordinate][Ycordinate] === "-") {
+            positions[Xcordinate][Ycordinate] = nextPlayer;
+          }
+        }
+
         this.games = {
           ...this.games,
           [game.gameId]: {

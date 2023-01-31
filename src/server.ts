@@ -73,7 +73,12 @@ wss.on("connection", (ws) => {
 
     const enrichedMessage: Message = {
       ...message,
-      playerId: message && message.playerId ? message.playerId : playerId,
+      playerId:
+        message && message.playerId
+          ? message.playerId
+          : message.type === "PLAY_WITH_ROBOT"
+          ? "robot" + uuid()
+          : playerId,
       gameId: message && message.gameId ? message.gameId : uuid(), // nullish coalescing!!
       connection: ws,
     };
