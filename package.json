@@ -27,13 +27,13 @@
   "dependencies": {
     "lodash.uniq": "^4.5.0",
     "uuid": "^9.0.0",
-    "ws": "^8.10.0"
+    "ws": "^8.11.0"
   },
   "devDependencies": {
     "@types/lodash.uniq": "^4.5.7",
     "@types/node": "^18.11.8",
     "@types/uuid": "^9.0.0",
-    "@types/ws": "^8.5.3",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
     "eslint": "^8.26.0",
