@@ -27,7 +27,7 @@
   "dependencies": {
     "lodash.uniq": "^4.5.0",
     "uuid": "^9.0.0",
-    "ws": "^8.11.0"
+    "ws": "^8.12.1"
   },
   "devDependencies": {
     "@types/lodash.uniq": "^4.5.7",
