@@ -18,7 +18,7 @@ import uniq from "lodash.uniq";
 import { Timer } from "./timer";
 
 const EMPTY_POSITION = "-";
-const DEFAULT_TIME_PER_PLAYER = 5000;
+const DEFAULT_TIME_PER_PLAYER = 60000;
 const DEFAULT_INCREMENT_PER_PLAYER = 1000;
 
 const getTimerBaseFromGame = (game: Game) => {
