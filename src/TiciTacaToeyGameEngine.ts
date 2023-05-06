@@ -615,7 +615,8 @@ const checkForDraw = (game: Game): boolean => {
 };
 
 export const calculateWinnerV2 = (
-  input: CalculateWinnerInputType
+  input: CalculateWinnerInputType,
+  winCount: number = 2
 ): CalculateWinnerOutputType => {
   let start = 0;
   let end = 0;
