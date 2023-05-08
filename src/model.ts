@@ -237,6 +237,7 @@ const COMPLETED_GAME_STATUS = [
 interface CalculateWinnerInputType {
   positions: string[][];
   winningSequenceLength: number;
+  winCountLength: number;
   lastTurnPlayerId: string;
   lastTurnPosition: WinningSequence;
 }
@@ -249,6 +250,7 @@ interface WinningSequence {
 interface CalculateWinnerOutputType {
   winner: string;
   winningSquence: WinningSequence[];
+  winCount: object;
 }
 
 export {

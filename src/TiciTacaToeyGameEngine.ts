@@ -39,6 +39,7 @@ const getConnectedPlayers = (players: PlayerStore, game: Game) => {
 
   return connectedPlayers;
 };
+
 const getConnectedSpectators = (players: PlayerStore, game: Game) => {
   const connectedSpectators: ConnectedPlayer[] = Object.values(players).filter(
     (each) => game.spectators.includes(each.playerId)
@@ -431,12 +432,14 @@ class TiciTacaToeyGameEngine implements GameEngine {
         const winner = calculateWinnerV2({
           positions: game.positions,
           winningSequenceLength: game.winningSequenceLength,
+          winCountLength: 2,
           lastTurnPlayerId: message.playerId,
           lastTurnPosition: {
             x: message.coordinateX,
             y: message.coordinateY,
           },
         });
+
         const tie = checkForDraw(this.games[message.gameId]);
 
         if (winner) {
@@ -613,10 +616,10 @@ const checkForDraw = (game: Game): boolean => {
   }
   return true;
 };
-
+const overallGame = [];
+const winCount: Record<string, number> = {};
 export const calculateWinnerV2 = (
-  input: CalculateWinnerInputType,
-  winCount: number = 2
+  input: CalculateWinnerInputType
 ): CalculateWinnerOutputType => {
   let start = 0;
   let end = 0;
@@ -626,6 +629,9 @@ export const calculateWinnerV2 = (
   const seqLength = input.winningSequenceLength;
   const x = input.lastTurnPosition.x;
   const y = input.lastTurnPosition.y;
+
+  // ⭐⭐⭐
+  const { winCountLength } = input;
 
   //check horizontal
   start = y - (seqLength - 1) < 0 ? 0 : y - (seqLength - 1);
@@ -639,10 +645,58 @@ export const calculateWinnerV2 = (
       winningSquence.push({ x: x, y: i });
     }
     if (count === seqLength) {
-      return {
+      count = 0;
+      if (Object.keys(winCount).length === 0) {
+        winCount[input.lastTurnPlayerId] = 1;
+      } else if (
+        winCount[input.lastTurnPlayerId] !== undefined &&
+        winCount[input.lastTurnPlayerId] < winCountLength
+      ) {
+        winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
+      } else {
+        winCount[input.lastTurnPlayerId] = 1;
+      }
+
+      overallGame.push({
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
-      };
+        winCount: winCount,
+      });
+
+      const lastWin = overallGame[overallGame.length - 1];
+      const lastWin_winCount = Object.entries(lastWin.winCount).forEach((e) => {
+        if (e[1] === winCountLength) {
+          return e;
+        }
+        return undefined;
+      });
+
+      if (lastWin_winCount !== undefined) {
+        console.log(
+          "********************** OVERALL WINNER *************************"
+        );
+        console.log(
+          `Player ${input.lastTurnPlayerId} won :: ${
+            winCount[input.lastTurnPlayerId]
+          }`
+        );
+        console.log(
+          "********************** OVERALL WINNER *************************"
+        );
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+          winCount: winCount,
+        };
+      }
+
+      console.log("********************** WINNER *************************");
+      console.log(
+        `Player ${input.lastTurnPlayerId} won :: ${
+          winCount[input.lastTurnPlayerId]
+        }`
+      );
+      console.log("********************** WINNER *************************");
     }
   }
 
@@ -659,11 +713,57 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: i, y: y });
     }
-    if (count == seqLength) {
-      return {
+    if (count === seqLength) {
+      count = 0;
+      if (winCount[input.lastTurnPlayerId] !== undefined) {
+        winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
+      } else {
+        winCount[input.lastTurnPlayerId] = 1;
+      }
+
+      overallGame.push({
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
-      };
+        winCount: winCount,
+      });
+
+      const lastWin = overallGame[overallGame.length - 1];
+      const lastWin_winCount = Object.entries(lastWin.winCount);
+
+      let overall_win = false;
+
+      for (let index = 0; index < lastWin_winCount.length; index++) {
+        if (lastWin_winCount[index][1] === winCountLength) {
+          overall_win = true;
+        }
+      }
+
+      if (overall_win) {
+        console.log(
+          "********************** OVERALL WINNER *************************"
+        );
+        console.log(
+          `Player ${input.lastTurnPlayerId} won :: ${
+            winCount[input.lastTurnPlayerId]
+          }`
+        );
+        console.log(
+          "********************** OVERALL WINNER *************************"
+        );
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+          winCount: winCount,
+        };
+      }
+
+      console.log("********************** WINNER *************************");
+      console.log(
+        `Player ${input.lastTurnPlayerId} won :: ${
+          winCount[input.lastTurnPlayerId]
+        }`
+      );
+      console.log("********************** WINNER *************************");
     }
   }
 
@@ -685,6 +785,7 @@ export const calculateWinnerV2 = (
       return {
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
+        winCount: winCount,
       };
     }
   }
@@ -703,6 +804,7 @@ export const calculateWinnerV2 = (
       return {
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
+        winCount: winCount,
       };
     }
   }
@@ -727,6 +829,7 @@ export const calculateWinnerV2 = (
       return {
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
+        winCount: winCount,
       };
     }
   }
@@ -743,6 +846,7 @@ export const calculateWinnerV2 = (
       return {
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
+        winCount: winCount,
       };
     }
   }
