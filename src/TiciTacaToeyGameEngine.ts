@@ -645,7 +645,6 @@ export const calculateWinnerV2 = (
       winningSquence.push({ x: x, y: i });
     }
     if (count === seqLength) {
-      count = 0;
       if (Object.keys(winCount).length === 0) {
         winCount[input.lastTurnPlayerId] = 1;
       } else if (
@@ -708,13 +707,13 @@ export const calculateWinnerV2 = (
   for (let i = start; i <= end; i++) {
     if (!(input.lastTurnPlayerId === input.positions[i][y])) {
       count = 0;
+      winningSquence = [];
       continue;
     } else {
       count++;
       winningSquence.push({ x: i, y: y });
     }
     if (count === seqLength) {
-      count = 0;
       if (winCount[input.lastTurnPlayerId] !== undefined) {
         winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
       } else {
@@ -733,9 +732,7 @@ export const calculateWinnerV2 = (
       let overall_win = false;
 
       for (let index = 0; index < lastWin_winCount.length; index++) {
-        if (lastWin_winCount[index][1] === winCountLength) {
-          overall_win = true;
-        }
+        if (lastWin_winCount[index][1] === winCountLength) overall_win = true;
       }
 
       if (overall_win) {
