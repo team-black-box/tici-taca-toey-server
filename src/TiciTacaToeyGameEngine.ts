@@ -629,8 +629,6 @@ export const calculateWinnerV2 = (
   const seqLength = input.winningSequenceLength;
   const x = input.lastTurnPosition.x;
   const y = input.lastTurnPosition.y;
-
-  // ⭐⭐⭐
   const { winCountLength } = input;
 
   //check horizontal
@@ -644,13 +642,43 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: x, y: i });
     }
+    // 🌟⭐🌟⭐ BEGIN OF CURRENT CELL POSITION CHECK
+    // CHECK CURRENT CELLS POSITION FOR CURRENT ITERATION
+    // IF IT EXIST IN RECORDED WINNING SEQUENCE THEN COUNT WILL BE 0 AND THEN continue
+
+    // check if current cell position exist in recorded winning sequence
+    let countReseter = false;
+
+    // Loop through the recorded overall game winning sequences
+    for (let outer = 0; outer < overallGame.length; outer++) {
+      console.log("PHASE ONE PASSED");
+      for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
+        console.log("PHASE TWO PASSED");
+        const recordedCellPositions = JSON.stringify(
+          overallGame[outer].winningSquence[mid]
+        );
+        // CHECK IF CURRENT CELL POSITIONS ALREADY EXIST IN ANOTHER WINNING SEQUENCE
+        // IF YES IGNORE THE CELL
+        console.log("[RECORDED] WINNING SEQUENCE");
+        console.log(recordedCellPositions);
+        console.log("[CURRENT] WINNING SEQUENCE");
+        console.log(JSON.stringify({ x: x, y: i }));
+        if (recordedCellPositions === JSON.stringify({ x: x, y: i })) {
+          console.log("PHASE THREE PASSED");
+          countReseter = true;
+          break;
+        }
+      }
+      if (countReseter === true) break;
+    }
+    if (countReseter === true) {
+      count = 0;
+      continue;
+    }
+    // 🌟⭐🌟⭐ END OF CURRENT CELL POSITION CHECK
+
     if (count === seqLength) {
-      if (Object.keys(winCount).length === 0) {
-        winCount[input.lastTurnPlayerId] = 1;
-      } else if (
-        winCount[input.lastTurnPlayerId] !== undefined &&
-        winCount[input.lastTurnPlayerId] < winCountLength
-      ) {
+      if (winCount[input.lastTurnPlayerId] !== undefined) {
         winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
       } else {
         winCount[input.lastTurnPlayerId] = 1;
@@ -663,14 +691,15 @@ export const calculateWinnerV2 = (
       });
 
       const lastWin = overallGame[overallGame.length - 1];
-      const lastWin_winCount = Object.entries(lastWin.winCount).forEach((e) => {
-        if (e[1] === winCountLength) {
-          return e;
-        }
-        return undefined;
-      });
+      const lastWin_winCount = Object.entries(lastWin.winCount);
 
-      if (lastWin_winCount !== undefined) {
+      let overall_win = false;
+
+      for (let index = 0; index < lastWin_winCount.length; index++) {
+        if (lastWin_winCount[index][1] === winCountLength) overall_win = true;
+      }
+
+      if (overall_win) {
         console.log(
           "********************** OVERALL WINNER *************************"
         );
@@ -707,12 +736,39 @@ export const calculateWinnerV2 = (
   for (let i = start; i <= end; i++) {
     if (!(input.lastTurnPlayerId === input.positions[i][y])) {
       count = 0;
-      winningSquence = [];
       continue;
     } else {
       count++;
       winningSquence.push({ x: i, y: y });
     }
+    // 🌟⭐🌟⭐ BEGIN OF CURRENT CELL POSITION CHECK
+    // CHECK CURRENT CELLS POSITION FOR CURRENT ITERATION
+    // IF IT EXIST IN RECORDED WINNING SEQUENCE THEN COUNT WILL BE 0 AND THEN continue
+
+    // check if current cell position exist in recorded winning sequence
+    let countReseter = false;
+
+    // Loop through the recorded overall game winning sequences
+    for (let outer = 0; outer < overallGame.length; outer++) {
+      for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
+        const recordedCellPositions = JSON.stringify(
+          overallGame[outer].winningSquence[mid]
+        );
+        // CHECK IF CURRENT CELL POSITIONS ALREADY EXIST IN ANOTHER WINNING SEQUENCE
+        // IF YES IGNORE THE CELL
+        if (recordedCellPositions === JSON.stringify({ x: i, y: y })) {
+          countReseter = true;
+          break;
+        }
+      }
+      if (countReseter === true) break;
+    }
+    if (countReseter === true) {
+      count = 0;
+      continue;
+    }
+    // 🌟⭐🌟⭐ END OF CURRENT CELL POSITION CHECK
+
     if (count === seqLength) {
       if (winCount[input.lastTurnPlayerId] !== undefined) {
         winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
