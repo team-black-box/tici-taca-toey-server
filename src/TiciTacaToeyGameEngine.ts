@@ -631,7 +631,7 @@ export const calculateWinnerV2 = (
   const y = input.lastTurnPosition.y;
   const { winCountLength } = input;
 
-  //check horizontal
+  // CHECKS HORIZONTAL
   start = y - (seqLength - 1) < 0 ? 0 : y - (seqLength - 1);
   end = y + (seqLength - 1) > size - 1 ? size - 1 : y + (seqLength - 1);
   for (let i = start; i <= end; i++) {
@@ -642,29 +642,15 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: x, y: i });
     }
-    // 🌟⭐🌟⭐ BEGIN OF CURRENT CELL POSITION CHECK
-    // CHECK CURRENT CELLS POSITION FOR CURRENT ITERATION
-    // IF IT EXIST IN RECORDED WINNING SEQUENCE THEN COUNT WILL BE 0 AND THEN continue
 
-    // check if current cell position exist in recorded winning sequence
     let countReseter = false;
 
-    // Loop through the recorded overall game winning sequences
     for (let outer = 0; outer < overallGame.length; outer++) {
-      console.log("PHASE ONE PASSED");
       for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
-        console.log("PHASE TWO PASSED");
         const recordedCellPositions = JSON.stringify(
           overallGame[outer].winningSquence[mid]
         );
-        // CHECK IF CURRENT CELL POSITIONS ALREADY EXIST IN ANOTHER WINNING SEQUENCE
-        // IF YES IGNORE THE CELL
-        console.log("[RECORDED] WINNING SEQUENCE");
-        console.log(recordedCellPositions);
-        console.log("[CURRENT] WINNING SEQUENCE");
-        console.log(JSON.stringify({ x: x, y: i }));
         if (recordedCellPositions === JSON.stringify({ x: x, y: i })) {
-          console.log("PHASE THREE PASSED");
           countReseter = true;
           break;
         }
@@ -675,7 +661,6 @@ export const calculateWinnerV2 = (
       count = 0;
       continue;
     }
-    // 🌟⭐🌟⭐ END OF CURRENT CELL POSITION CHECK
 
     if (count === seqLength) {
       if (winCount[input.lastTurnPlayerId] !== undefined) {
@@ -700,35 +685,16 @@ export const calculateWinnerV2 = (
       }
 
       if (overall_win) {
-        console.log(
-          "********************** OVERALL WINNER *************************"
-        );
-        console.log(
-          `Player ${input.lastTurnPlayerId} won :: ${
-            winCount[input.lastTurnPlayerId]
-          }`
-        );
-        console.log(
-          "********************** OVERALL WINNER *************************"
-        );
         return {
           winner: input.lastTurnPlayerId, // winning player
           winningSquence: winningSquence,
           winCount: winCount,
         };
       }
-
-      console.log("********************** WINNER *************************");
-      console.log(
-        `Player ${input.lastTurnPlayerId} won :: ${
-          winCount[input.lastTurnPlayerId]
-        }`
-      );
-      console.log("********************** WINNER *************************");
     }
   }
 
-  //check vertical
+  // CHECK VERTICAL
   count = 0;
   winningSquence = [];
   start = x - (seqLength - 1) < 0 ? 0 : x - (seqLength - 1);
@@ -741,21 +707,14 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: i, y: y });
     }
-    // 🌟⭐🌟⭐ BEGIN OF CURRENT CELL POSITION CHECK
-    // CHECK CURRENT CELLS POSITION FOR CURRENT ITERATION
-    // IF IT EXIST IN RECORDED WINNING SEQUENCE THEN COUNT WILL BE 0 AND THEN continue
 
-    // check if current cell position exist in recorded winning sequence
     let countReseter = false;
 
-    // Loop through the recorded overall game winning sequences
     for (let outer = 0; outer < overallGame.length; outer++) {
       for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
         const recordedCellPositions = JSON.stringify(
           overallGame[outer].winningSquence[mid]
         );
-        // CHECK IF CURRENT CELL POSITIONS ALREADY EXIST IN ANOTHER WINNING SEQUENCE
-        // IF YES IGNORE THE CELL
         if (recordedCellPositions === JSON.stringify({ x: i, y: y })) {
           countReseter = true;
           break;
@@ -767,7 +726,6 @@ export const calculateWinnerV2 = (
       count = 0;
       continue;
     }
-    // 🌟⭐🌟⭐ END OF CURRENT CELL POSITION CHECK
 
     if (count === seqLength) {
       if (winCount[input.lastTurnPlayerId] !== undefined) {
@@ -792,39 +750,21 @@ export const calculateWinnerV2 = (
       }
 
       if (overall_win) {
-        console.log(
-          "********************** OVERALL WINNER *************************"
-        );
-        console.log(
-          `Player ${input.lastTurnPlayerId} won :: ${
-            winCount[input.lastTurnPlayerId]
-          }`
-        );
-        console.log(
-          "********************** OVERALL WINNER *************************"
-        );
         return {
           winner: input.lastTurnPlayerId, // winning player
           winningSquence: winningSquence,
           winCount: winCount,
         };
       }
-
-      console.log("********************** WINNER *************************");
-      console.log(
-        `Player ${input.lastTurnPlayerId} won :: ${
-          winCount[input.lastTurnPlayerId]
-        }`
-      );
-      console.log("********************** WINNER *************************");
     }
   }
 
-  //check right diagonal
+  // CHECKS RIGHT DIAGONAL
   count = 1;
   winningSquence = [{ x: x, y: y }];
   let xPosLeft = x - 1;
   let yPosLeft = y - 1;
+  // CHECKS LEFT - UPWARD
   while (xPosLeft >= 0 && yPosLeft >= 0) {
     if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
       break;
@@ -832,18 +772,62 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: xPosLeft, y: yPosLeft });
     }
+
+    let countReseter = false;
+
+    for (let outer = 0; outer < overallGame.length; outer++) {
+      for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
+        const recordedCellPositions = JSON.stringify(
+          overallGame[outer].winningSquence[mid]
+        );
+        if (
+          recordedCellPositions === JSON.stringify({ x: xPosLeft, y: yPosLeft })
+        ) {
+          countReseter = true;
+          break;
+        }
+      }
+      if (countReseter === true) break;
+    }
+    if (countReseter === true) break;
+
     xPosLeft--;
     yPosLeft--;
-    if (count == seqLength) {
-      return {
+    if (count === seqLength) {
+      if (winCount[input.lastTurnPlayerId] !== undefined) {
+        winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
+      } else {
+        winCount[input.lastTurnPlayerId] = 1;
+      }
+
+      overallGame.push({
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
         winCount: winCount,
-      };
+      });
+
+      const lastWin = overallGame[overallGame.length - 1];
+      const lastWin_winCount = Object.entries(lastWin.winCount);
+
+      let overall_win = false;
+
+      for (let index = 0; index < lastWin_winCount.length; index++) {
+        if (lastWin_winCount[index][1] === winCountLength) overall_win = true;
+      }
+
+      if (overall_win) {
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+          winCount: winCount,
+        };
+      }
     }
   }
+  // *********************************
   let xPosRight = x + 1;
   let yPosRight = y + 1;
+  // CHECKS RIGHT - UPWARD
   while (xPosRight < size && yPosRight < size) {
     if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
       break;
@@ -851,24 +835,65 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: xPosRight, y: yPosRight });
     }
+
+    let countReseter = false;
+
+    for (let outer = 0; outer < overallGame.length; outer++) {
+      for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
+        const recordedCellPositions = JSON.stringify(
+          overallGame[outer].winningSquence[mid]
+        );
+        if (
+          recordedCellPositions ===
+          JSON.stringify({ x: xPosRight, y: yPosRight })
+        ) {
+          countReseter = true;
+          break;
+        }
+      }
+      if (countReseter === true) break;
+    }
+    if (countReseter === true) break;
     xPosRight--;
     xPosRight--;
-    if (count == seqLength) {
-      return {
+    if (count === seqLength) {
+      if (winCount[input.lastTurnPlayerId] !== undefined) {
+        winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
+      } else {
+        winCount[input.lastTurnPlayerId] = 1;
+      }
+
+      overallGame.push({
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
         winCount: winCount,
-      };
+      });
+
+      const lastWin = overallGame[overallGame.length - 1];
+      const lastWin_winCount = Object.entries(lastWin.winCount);
+
+      let overall_win = false;
+
+      for (let index = 0; index < lastWin_winCount.length; index++) {
+        if (lastWin_winCount[index][1] === winCountLength) overall_win = true;
+      }
+
+      if (overall_win) {
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+          winCount: winCount,
+        };
+      }
     }
   }
 
-  //check left diagonal
+  // CHECKS LEFT DIAGONAL
   count = 1;
   winningSquence = [{ x: x, y: y }];
   xPosLeft = x + 1;
-  xPosRight = x - 1;
   yPosLeft = y - 1;
-  yPosRight = y + 1;
+  // CHECKS LEFT - UPWARD
   while (xPosLeft < size && yPosLeft >= 0) {
     if (!(input.lastTurnPlayerId === input.positions[xPosLeft][yPosLeft])) {
       break;
@@ -876,16 +901,62 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: xPosLeft, y: yPosLeft });
     }
+
+    let countReseter = false;
+
+    for (let outer = 0; outer < overallGame.length; outer++) {
+      for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
+        const recordedCellPositions = JSON.stringify(
+          overallGame[outer].winningSquence[mid]
+        );
+        if (
+          recordedCellPositions === JSON.stringify({ x: xPosLeft, y: yPosLeft })
+        ) {
+          countReseter = true;
+          break;
+        }
+      }
+      if (countReseter === true) break;
+    }
+    if (countReseter === true) break;
+
     xPosLeft++;
     yPosLeft--;
-    if (count == seqLength) {
-      return {
+    if (count === seqLength) {
+      if (winCount[input.lastTurnPlayerId] !== undefined) {
+        winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
+      } else {
+        winCount[input.lastTurnPlayerId] = 1;
+      }
+
+      overallGame.push({
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
         winCount: winCount,
-      };
+      });
+
+      const lastWin = overallGame[overallGame.length - 1];
+      const lastWin_winCount = Object.entries(lastWin.winCount);
+
+      let overall_win = false;
+
+      for (let index = 0; index < lastWin_winCount.length; index++) {
+        if (lastWin_winCount[index][1] === winCountLength) overall_win = true;
+      }
+
+      if (overall_win) {
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+          winCount: winCount,
+        };
+      }
     }
   }
+
+  xPosRight = x - 1;
+  yPosRight = y + 1;
+  // CHECKS RIGHT - UPWARD
   while (xPosRight >= 0 && yPosRight < size) {
     if (!(input.lastTurnPlayerId === input.positions[xPosRight][yPosRight])) {
       break;
@@ -893,14 +964,56 @@ export const calculateWinnerV2 = (
       count++;
       winningSquence.push({ x: xPosRight, y: yPosRight });
     }
+
+    let countReseter = false;
+
+    for (let outer = 0; outer < overallGame.length; outer++) {
+      for (let mid = 0; mid < overallGame[outer].winningSquence.length; mid++) {
+        const recordedCellPositions = JSON.stringify(
+          overallGame[outer].winningSquence[mid]
+        );
+        if (
+          recordedCellPositions ===
+          JSON.stringify({ x: xPosRight, y: yPosRight })
+        ) {
+          countReseter = true;
+          break;
+        }
+      }
+      if (countReseter === true) break;
+    }
+    if (countReseter === true) break;
     xPosRight--;
     yPosRight++;
-    if (count == seqLength) {
-      return {
+    if (count === seqLength) {
+      if (winCount[input.lastTurnPlayerId] !== undefined) {
+        winCount[input.lastTurnPlayerId] = winCount[input.lastTurnPlayerId] + 1;
+      } else {
+        winCount[input.lastTurnPlayerId] = 1;
+      }
+
+      overallGame.push({
         winner: input.lastTurnPlayerId, // winning player
         winningSquence: winningSquence,
         winCount: winCount,
-      };
+      });
+
+      const lastWin = overallGame[overallGame.length - 1];
+      const lastWin_winCount = Object.entries(lastWin.winCount);
+
+      let overall_win = false;
+
+      for (let index = 0; index < lastWin_winCount.length; index++) {
+        if (lastWin_winCount[index][1] === winCountLength) overall_win = true;
+      }
+
+      if (overall_win) {
+        return {
+          winner: input.lastTurnPlayerId, // winning player
+          winningSquence: winningSquence,
+          winCount: winCount,
+        };
+      }
     }
   }
   return null;
