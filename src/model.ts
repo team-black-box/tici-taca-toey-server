@@ -86,6 +86,15 @@ interface RegisterRobotMessage {
   gameId?: string;
 }
 
+interface PlayWithRobotMessage {
+  type: MessageTypes.PLAY_WITH_ROBOT;
+  name: string;
+  maxGames: number;
+  connection: WebSocket;
+  playerId?: string;
+  gameId?: string;
+}
+
 interface StartGameMessage {
   type: MessageTypes.START_GAME;
   name: string;
@@ -146,6 +155,7 @@ interface PlayerTimeoutMessage {
 type Message =
   | RegisterPlayerMessage
   | RegisterRobotMessage
+  | PlayWithRobotMessage
   | StartGameMessage
   | JoinGameMessage
   | SpectateGameMessage
@@ -164,6 +174,10 @@ interface RegisterRobotResponse extends Player {
   type: MessageTypes.REGISTER_ROBOT;
 }
 
+interface PlayWithRobotResponse extends Player {
+  type: MessageTypes.PLAY_WITH_ROBOT;
+}
+
 interface GameActionResponse extends GameState {
   type:
     | MessageTypes.START_GAME
@@ -179,6 +193,7 @@ interface GameActionResponse extends GameState {
 type Response =
   | RegisterPlayerResponse
   | RegisterRobotResponse
+  | PlayWithRobotResponse
   | GameActionResponse;
 
 interface GameError {
@@ -189,6 +204,7 @@ interface GameError {
 enum MessageTypes {
   REGISTER_PLAYER = "REGISTER_PLAYER",
   REGISTER_ROBOT = "REGISTER_ROBOT",
+  PLAY_WITH_ROBOT = "PLAY_WITH_ROBOT",
   START_GAME = "START_GAME",
   JOIN_GAME = "JOIN_GAME",
   MAKE_MOVE = "MAKE_MOVE",

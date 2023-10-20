@@ -118,6 +118,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
           break;
         case MessageTypes.REGISTER_ROBOT:
           break;
+        case MessageTypes.PLAY_WITH_ROBOT:
+          break;
         case MessageTypes.PLAYER_DISCONNECT:
           break;
         case MessageTypes.NOTIFY_TIME:
@@ -239,11 +241,19 @@ class TiciTacaToeyGameEngine implements GameEngine {
         break;
       }
       case MessageTypes.REGISTER_ROBOT: {
-        const { type, ...robotData } = message;
-        this.robots = {
-          ...this.robots,
-          [message.playerId]: { ...robotData },
-        };
+        // const { type, ...robotData } = message;
+        // this.robots = {
+        //   ...this.robots,
+        //   [message.playerId]: { ...robotData },
+        // };
+        // console.log(this.robots);
+        // this.players = addPlayer(
+        //   this.players,
+        //   message.playerId,
+        //   message.name,
+        //   message.connection
+        // );
+        // console.log("Players List", this.players);
         break;
       }
       case MessageTypes.NOTIFY_TIME:
@@ -316,6 +326,8 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
         break;
       }
+      // PLAY_WITH_ROBOT should be called after START_GAME
+      case MessageTypes.PLAY_WITH_ROBOT:
       case MessageTypes.JOIN_GAME: {
         const gameId = message.gameId;
         if (!(message.playerId in this.players)) {
@@ -416,9 +428,52 @@ class TiciTacaToeyGameEngine implements GameEngine {
         game.timers[message.playerId].stop(game.incrementPerPlayer);
 
         const nextPlayer = calculateNextTurn(game);
-
         const positions = [...this.games[game.gameId].positions];
         positions[message.coordinateX][message.coordinateY] = message.playerId;
+
+        // Assuming positions to make recursion take less time
+        positions[0][1] = nextPlayer;
+        positions[0][2] = message.playerId;
+        positions[2][0] = nextPlayer;
+        positions[1][2] = message.playerId;
+
+        if (nextPlayer.startsWith("robot")) {
+          let bestMove;
+          let bestScore = -Infinity;
+          for (let i = 0; i < positions.length; i++) {
+            for (let j = 0; j < positions[0].length; j++) {
+              if (positions[i][j] === "-") {
+                // changing positions array just to check
+                positions[i][j] = nextPlayer;
+
+                const score = minimax(
+                  positions,
+                  false,
+                  nextPlayer,
+                  message.playerId,
+                  game,
+                  i,
+                  j
+                );
+                // making things as it were
+                positions[i][j] = "-";
+
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestMove = { i, j };
+                }
+              }
+            }
+          }
+          // Assigning robotId to best spot found for robot
+          positions[bestMove.i][bestMove.j] = nextPlayer;
+          console.log("Final matrix");
+          console.log(positions);
+          console.log(
+            "Robot's best move X: " + bestMove.i + ", Y : " + bestMove.j
+          );
+        }
+
         this.games = {
           ...this.games,
           [game.gameId]: {
@@ -475,7 +530,25 @@ class TiciTacaToeyGameEngine implements GameEngine {
 
   notify(message: Message) {
     switch (message.type) {
-      case (MessageTypes.REGISTER_PLAYER, MessageTypes.REGISTER_ROBOT): {
+      case MessageTypes.REGISTER_PLAYER: {
+        const response: Response = {
+          type: message.type,
+          name: message.name,
+          playerId: message.playerId,
+        };
+        message.connection.send(JSON.stringify(response));
+        break;
+      }
+      case MessageTypes.REGISTER_ROBOT: {
+        const response: Response = {
+          type: message.type,
+          name: message.name,
+          playerId: message.playerId,
+        };
+        message.connection.send(JSON.stringify(response));
+        break;
+      }
+      case MessageTypes.PLAY_WITH_ROBOT: {
         const response: Response = {
           type: message.type,
           name: message.name,
@@ -563,6 +636,87 @@ class TiciTacaToeyGameEngine implements GameEngine {
     );
   }
 }
+
+const scores = {
+  realPlayerId: 1,
+  robotPlayerId: -1,
+  tie: 0,
+};
+
+const minimax = (
+  positions: string[][],
+  isMaximizing: boolean,
+  lastTurnPlayerId: string,
+  anotherPlayerId: string,
+  game: Game,
+  x: number,
+  y: number
+): number => {
+  const winner = calculateWinnerV2({
+    positions: game.positions,
+    winningSequenceLength: game.winningSequenceLength,
+    lastTurnPlayerId: lastTurnPlayerId,
+    lastTurnPosition: {
+      x: x,
+      y: y,
+    },
+  });
+
+  if (winner !== null) {
+    if (winner.winner.startsWith("robot")) {
+      winner.winner = "robotPlayerId";
+    } else if (checkForDraw(game)) {
+      winner.winner = "tie";
+    } else {
+      winner.winner = "realPlayerId";
+    }
+    return scores[winner.winner];
+  }
+
+  if (isMaximizing) {
+    let bestScore = -Infinity;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = 0; j < positions[0].length; j++) {
+        if (positions[i][j] === "-") {
+          positions[i][j] = lastTurnPlayerId;
+          const score = minimax(
+            positions,
+            false,
+            lastTurnPlayerId,
+            anotherPlayerId,
+            game,
+            i,
+            j
+          );
+          positions[i][j] = "-";
+          bestScore = Math.max(score, bestScore);
+        }
+      }
+    }
+    return bestScore;
+  } else {
+    let bestScore = Infinity;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = 0; j < positions[0].length; j++) {
+        if (positions[i][j] === "-") {
+          positions[i][j] = anotherPlayerId;
+          const score = minimax(
+            positions,
+            true,
+            anotherPlayerId,
+            lastTurnPlayerId,
+            game,
+            i,
+            j
+          );
+          positions[i][j] = "-";
+          bestScore = Math.min(score, bestScore);
+        }
+      }
+    }
+    return bestScore;
+  }
+};
 
 const addPlayer = (
   players: {
